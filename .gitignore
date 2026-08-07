@@ -1,0 +1,32 @@
+# Python / Virtual environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+*.db
+*.sqlite3
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# Deep Learning artifacts
+dl-model/saved_model/
+dl-model/plots/
+dl-model/outputs/
+webapp/backend/uploads/
+webapp/backend/gradcam_outputs/
+
+# Hardhat / Smart Contracts
+blockchain/artifacts/
+blockchain/cache/
+blockchain/typechain-types/
+blockchain/deployed_address.json
+
+# Environment files
+.env
+.env.local
