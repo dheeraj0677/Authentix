@@ -1,6 +1,211 @@
-# 🛡️ Authentix — DeepFake Verification & Blockchain Registry
+<div align="center">
 
-Authentix is an enterprise-grade, full-stack **Deep Learning** and **Ethereum Blockchain** media verification platform. It detects DeepFake images and videos using an **EfficientNetB0 Convolutional Neural Network**, visualizes decision regions via **Grad-CAM activation heatmaps**, generates printable **PDF Verification Certificates**, pins media to **IPFS**, and registers cryptographic SHA-256 digests on **Ethereum Smart Contracts** for tamper-proof provenance.
+# 🛡️ Authentix
+
+**DeepFake Detection · Blockchain Provenance · Explainable AI**
+
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://python.org)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.12+-FF6F00?logo=tensorflow&logoColor=white)](https://tensorflow.org)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Hardhat](https://img.shields.io/badge/Ethereum-Hardhat-yellow?logo=ethereum&logoColor=black)](https://hardhat.org)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
+
+A full-stack media authenticity platform combining a **deep learning deepfake detector**, **Ethereum smart contract registry**, and **explainable AI visualizations**.
+
+</div>
+
+---
+
+## What It Does
+
+| Capability | How |
+|---|---|
+| 🤖 **DeepFake Detection** | EfficientNetB0 CNN classifies images & videos as REAL or FAKE with confidence scores |
+| 🔥 **Explainable AI** | Grad-CAM heatmaps highlight exact pixel regions driving the AI verdict |
+| ⛓️ **Blockchain Provenance** | SHA-256 hash of media is anchored on Ethereum via Solidity smart contracts |
+| 📄 **PDF Certificates** | Downloadable verification certificates with metadata, Grad-CAM overlay & TX hash |
+| 🌐 **Decentralized Storage** | Media pinned to IPFS; only hashes stored on-chain for privacy & low gas fees |
+| 📊 **Analytics Dashboard** | Real-time AI analytics, detection history, and per-frame video timelines |
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 18, Vite, Tailwind CSS, Ethers.js, MetaMask |
+| **Backend** | FastAPI, SQLAlchemy, Python 3.10+ |
+| **AI / ML** | TensorFlow 2.12, Keras, OpenCV, EfficientNetB0 |
+| **Blockchain** | Solidity, Hardhat, Ethers.js v5, Web3.py |
+| **Storage** | IPFS (Kubo), SQLite |
+| **Infra** | Docker, Docker Compose, Nginx |
+
+---
+
+## Project Structure
+
+```
+Authentix/
+│
+├── dl-model/                   # Deep Learning Module
+│   ├── model.py                #   EfficientNetB0 CNN builder
+│   ├── train.py                #   Two-phase transfer learning
+│   ├── predict.py              #   Image inference CLI
+│   ├── video_predict.py        #   Video frame analysis & timeline
+│   ├── gradcam.py              #   Grad-CAM heatmap generator
+│   ├── evaluate.py             #   Metrics & confusion matrix
+│   └── stress_test.py          #   Noise/compression robustness tests
+│
+├── blockchain/                 # Smart Contract Module
+│   ├── contracts/              #   Solidity contracts (Registry, Controller)
+│   ├── scripts/                #   Deployment scripts
+│   ├── test/                   #   Hardhat unit tests
+│   └── web3_client.py          #   Python ↔ Ethereum Web3 bridge
+│
+├── webapp/
+│   ├── backend/                # FastAPI Server
+│   │   ├── main.py             #   API endpoints & DL inference
+│   │   ├── pdf_generator.py    #   Certificate engine (ReportLab)
+│   │   ├── auth_manager.py     #   JWT authentication
+│   │   ├── ipfs_client.py      #   IPFS upload handler
+│   │   └── schemas.py          #   Pydantic data models
+│   └── frontend/               # React Application
+│       └── src/
+│           ├── pages/          #   Upload, Verify, History, Analytics
+│           └── components/     #   DropZone, GradCam, ResultCard, etc.
+│
+├── docker-compose.yml          # Multi-container orchestration
+├── Dockerfile                  # Backend image
+└── Dockerfile.frontend         # Frontend image (Nginx)
+```
+
+---
+
+## Quick Start
+
+### Docker (Recommended)
+
+```bash
+git clone https://github.com/viswanath006/Authentix_.git
+cd Authentix_
+docker-compose up --build
+```
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| Ethereum Node | http://localhost:8545 |
+| IPFS Gateway | http://localhost:8080 |
+
+---
+
+### Manual Setup
+
+<details>
+<summary><b>Step 1 — Blockchain Node</b></summary>
+
+```bash
+cd blockchain
+npm install
+npm run node          # Start local Hardhat network
+```
+
+In a second terminal:
+```bash
+cd blockchain
+npm run deploy:local  # Deploy smart contracts
+```
+
+To deploy to Sepolia testnet:
+```bash
+npm run deploy:sepolia
+```
+</details>
+
+<details>
+<summary><b>Step 2 — Backend API</b></summary>
+
+```bash
+cd webapp/backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+</details>
+
+<details>
+<summary><b>Step 3 — Frontend</b></summary>
+
+```bash
+cd webapp/frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173
+</details>
+
+---
+
+## Deep Learning CLI
+
+```bash
+# Classify a single image
+python dl-model/predict.py --image path/to/image.jpg
+
+# Analyze a video (frame-by-frame timeline)
+python dl-model/video_predict.py --video path/to/video.mp4
+
+# Run robustness stress test (JPEG, blur, noise)
+python dl-model/stress_test.py
+```
+
+---
+
+## Smart Contracts
+
+```bash
+cd blockchain
+
+npm test              # Run Hardhat unit tests
+npm run compile       # Compile Solidity contracts
+```
+
+Deployed contracts:
+- **`AuthenticityRegistry.sol`** — Core hash registry
+- **`RegistryController.sol`** — Access control & modular registry management
+
+---
+
+## Environment Variables
+
+Copy `.env.example` in the `blockchain/` directory and fill in your values:
+
+```env
+RPC_URL=http://127.0.0.1:8545
+PRIVATE_KEY=your_wallet_private_key
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_KEY
+```
+
+> **Never commit real private keys.** Use `.env` files excluded by `.gitignore`.
+
+---
+
+## Security
+
+- **Zero on-chain media** — Only SHA-256 hashes are stored on the blockchain; raw files stay off-chain or on IPFS.
+- **JWT Authentication** — All API routes are protected via token-based auth managed by `auth_manager.py`.
+- **No hardcoded secrets** — All sensitive config is loaded from environment variables.
+
+---
+
+<div align="center">
+
+Made with ❤️ by [viswanath006](https://github.com/viswanath006)
+
+</div>
+
 
 ---
 
