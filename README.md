@@ -9,7 +9,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Hardhat](https://img.shields.io/badge/Ethereum-Hardhat-yellow?logo=ethereum&logoColor=black)](https://hardhat.org)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![Vite](https://img.shields.io/badge/Vite-4.4+-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
 
 A full-stack media authenticity platform combining a **deep learning deepfake detector**, **Ethereum smart contract registry**, and **explainable AI visualizations**.
 
@@ -38,8 +38,8 @@ A full-stack media authenticity platform combining a **deep learning deepfake de
 | **Backend** | FastAPI, SQLAlchemy, Python 3.10+ |
 | **AI / ML** | TensorFlow 2.12, Keras, OpenCV, EfficientNetB0 |
 | **Blockchain** | Solidity, Hardhat, Ethers.js v5, Web3.py |
-| **Storage** | IPFS (Kubo), SQLite |
-| **Infra** | Docker, Docker Compose, Nginx |
+| **Storage** | IPFS (Kubo / Fallback CID), SQLite |
+| **Scripts** | Native PowerShell Automation (`start.ps1`, `setup.ps1`, `stop.ps1`) |
 
 ---
 
@@ -75,29 +75,39 @@ Authentix/
 │           ├── pages/          #   Upload, Verify, History, Analytics
 │           └── components/     #   DropZone, GradCam, ResultCard, etc.
 │
-├── docker-compose.yml          # Multi-container orchestration
-├── Dockerfile                  # Backend image
-└── Dockerfile.frontend         # Frontend image (Nginx)
+├── setup.ps1                   # One-click dependency installer
+├── start.ps1                   # One-click service launcher (Blockchain + Backend + Frontend)
+├── stop.ps1                    # Clean shutdown script
+└── README.md
 ```
 
 ---
 
-## Quick Start
+## Quick Start (No Docker Required)
 
-### Docker (Recommended)
+### 1-Click Native Launcher (PowerShell)
 
-```bash
-git clone https://github.com/viswanath006/Authentix_.git
-cd Authentix_
-docker-compose up --build
+First-time setup (installs all Python and Node.js dependencies):
+```powershell
+.\setup.ps1
 ```
 
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:8000 |
-| Ethereum Node | http://localhost:8545 |
-| IPFS Gateway | http://localhost:8080 |
+Start all services (Hardhat node, FastAPI backend, React frontend):
+```powershell
+.\start.ps1
+```
+
+| Service | URL | Description |
+|---|---|---|
+| **Frontend UI** | http://localhost:5173 | React 18 / Vite Client |
+| **Backend API** | http://127.0.0.1:8000 | FastAPI REST Server |
+| **API Docs** | http://127.0.0.1:8000/docs | Interactive Swagger UI |
+| **Ethereum Node** | http://127.0.0.1:8545 | Hardhat JSON-RPC Node |
+
+To gracefully stop all services:
+```powershell
+.\stop.ps1
+```
 
 ---
 
@@ -278,24 +288,28 @@ Authentix/
 │       ├── src/components/      # UI Components (DropZone, GradCam, Timeline, etc.)
 │       └── src/pages/           # App Pages (Upload, Verify, History, Analytics)
 │
-├── docker-compose.yml           # Multi-container orchestration
-├── Dockerfile                   # Backend Dockerfile
-├── Dockerfile.frontend          # Frontend Dockerfile
+├── setup.ps1                    # First-time setup script
+├── start.ps1                    # Master startup script
+├── stop.ps1                     # Process shutdown script
 └── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started (Native Windows)
 
-### Option A: Using Docker Compose (Recommended)
+### Option A: Automated PowerShell Scripts (Recommended)
 
-```bash
-docker-compose up --build
+```powershell
+# 1. First-time setup (creates virtualenv & installs all dependencies)
+.\setup.ps1
+
+# 2. Launch all services simultaneously in dedicated windows
+.\start.ps1
+
+# 3. Stop all running services
+.\stop.ps1
 ```
-- **Frontend**: `http://localhost:5173`
-- **Backend API**: `http://localhost:8000`
-- **Hardhat Node**: `http://localhost:8545`
 
 ---
 

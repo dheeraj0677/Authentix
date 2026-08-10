@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 # Add project modules to Python path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.append(os.path.dirname(__file__))
 sys.path.append(os.path.join(PROJECT_ROOT, "dl-model"))
 sys.path.append(os.path.join(PROJECT_ROOT, "blockchain"))
 
@@ -24,7 +25,7 @@ from predict import predict_image
 from video_predict import predict_video
 from web3_client import Web3Client, compute_sha256
 from database import get_db, UploadRecord, VerificationHistoryRecord
-from schemas import UploadResponse, RegisterRequest, RegisterResponse, VerifyResponse, HistoryItem, VerificationHistoryItem, AuthNonceResponse, AuthVerifyRequest, AuthSessionResponse, DashboardStats, RecentActivityItem, LatestBlockItem, ProvenanceStageItem, ProvenanceTimelineResponse, AIAnalyticsStats, RocPoint, ConfusionMatrix, DailyMetricItem
+from schemas import UploadResponse, RegisterRequest, RegisterResponse, VerifyResponse, HistoryItem, VerificationHistoryItem, AuthNonceResponse, AuthVerifyRequest, AuthSessionResponse, DashboardStats, RecentActivityItem, LatestBlockItem, SmartContractEventItem, ProvenanceStageItem, ProvenanceTimelineResponse, AIAnalyticsStats, RocPoint, ConfusionMatrix, DailyMetricItem
 from pdf_generator import generate_pdf_report
 from ipfs_client import upload_to_ipfs
 from qr_generator import generate_qr_code_base64
