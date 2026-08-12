@@ -197,7 +197,7 @@ def generate_and_save_gradcam(image_path, model, output_path, img_size=(224, 224
     # Preprocess image for prediction
     rgb_img = cv2.cvtColor(orig_img, cv2.COLOR_BGR2RGB)
     resized_img = cv2.resize(rgb_img, img_size)
-    img_array = np.expand_dims(resized_img.astype(np.float32) / 255.0, axis=0)
+    img_array = np.expand_dims(resized_img.astype(np.float32), axis=0)
 
     # Safely create output directory (handle empty dirname)
     out_dir = os.path.dirname(output_path)

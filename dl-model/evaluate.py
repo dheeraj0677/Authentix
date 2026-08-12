@@ -3,52 +3,24 @@ import json
 import argparse
 import numpy as np
 import tensorflow as tf
+from data import load_datasets
 from predict import get_or_load_model
 
 def evaluate_model_performance(data_dir="data", model_path="saved_model/authentix_model.keras", output_json="plots/evaluation_metrics.json"):
     """
     Evaluates EfficientNetB0 model performance on the real test split.
     Computes Confusion Matrix, F1-Score, and ROC-AUC from actual model inference.
-
-    NOTE: Previously this function used hardcoded simulated y_true / y_scores arrays
-    and a magic AUC value of 0.9650. This has been replaced with real model inference
-    on the actual test dataset loaded from data_dir.
     """
     print("[INFO] Running comprehensive model evaluation on real test data...")
     model = get_or_load_model(model_path)
 
     if not os.path.exists(data_dir):
         print(f"[ERROR] Dataset directory '{data_dir}' not found. Cannot evaluate on real data.")
-        print("[INFO] To evaluate, provide a dataset with real/ and fake/ subdirectories.")
         return None
 
-    # Load the test split using same split strategy as data.py (70/15/15)
     try:
-        from tensorflow.keras.utils import image_dataset_from_directory
-        from tensorflow.keras.layers import Rescaling
-
-        VALIDATION_SPLIT = 0.3
-        SEED = 42
-        IMG_SIZE = (224, 224)
-        BATCH_SIZE = 32
-
-        raw_val_test_ds = image_dataset_from_directory(
-            data_dir,
-            validation_split=VALIDATION_SPLIT,
-            subset="validation",
-            seed=SEED,
-            image_size=IMG_SIZE,
-            batch_size=BATCH_SIZE,
-            label_mode="binary"
-        )
-
-        # Take the second 50% of val+test split as the test set (mirrors data.py)
-        val_batches = tf.data.experimental.cardinality(raw_val_test_ds)
-        val_size = val_batches // 2
-        test_ds = raw_val_test_ds.skip(val_size)
-
-        rescale = Rescaling(1.0 / 255)
-        test_ds = test_ds.map(lambda x, y: (rescale(x), y), num_parallel_calls=tf.data.AUTOTUNE).prefetch(tf.data.AUTOTUNE)
+        _, _, test_ds, label_map = load_datasets(data_dir, batch_size=32)
+        print(f"[INFO] Evaluating with class mapping: {label_map}")
 
         print("[INFO] Running inference on test set...")
         all_scores = []
@@ -64,7 +36,6 @@ def evaluate_model_performance(data_dir="data", model_path="saved_model/authenti
 
     except Exception as e:
         print(f"[WARN] Failed to load dataset for evaluation: {e}")
-        print("[INFO] Falling back to empty result — run with a valid dataset directory.")
         return None
 
     y_pred = (y_scores >= 0.5).astype(int)
@@ -80,12 +51,11 @@ def evaluate_model_performance(data_dir="data", model_path="saved_model/authenti
     recall = round(float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0, 4)
     f1_score = round(float(2 * (precision * recall) / (precision + recall)) if (precision + recall) > 0 else 0.0, 4)
 
-    # Compute ROC-AUC using trapezoidal integration
+    # Compute ROC-AUC
     try:
         from sklearn.metrics import roc_auc_score
         auc = round(float(roc_auc_score(y_true, y_scores)), 4)
-    except ImportError:
-        # Manual AUC computation if sklearn is unavailable
+    except Exception:
         thresholds = np.linspace(0, 1, 100)
         tprs, fprs = [], []
         for t in thresholds:
@@ -107,21 +77,7 @@ def evaluate_model_performance(data_dir="data", model_path="saved_model/authenti
             "true_negative": tn,
             "false_positive": fp,
             "false_negative": fn
-        },
-        "failure_analysis": [
-            {
-                "case_id": "FN_001",
-                "type": "False Negative (Fake classified as Real)",
-                "cause": "Extreme harsh lighting and side shadow causing artificial boundary sharp gradients",
-                "mitigation": "Incorporate low-light and high-contrast data augmentation during training"
-            },
-            {
-                "case_id": "FP_001",
-                "type": "False Positive (Real classified as Fake)",
-                "cause": "Heavy JPEG compression blurring facial boundary artifacts",
-                "mitigation": "Include multi-quality JPEG compression in pre-training data augmentations"
-            }
-        ]
+        }
     }
 
     os.makedirs(os.path.dirname(output_json) if os.path.dirname(output_json) else ".", exist_ok=True)
@@ -141,7 +97,6 @@ def evaluate_model_performance(data_dir="data", model_path="saved_model/authenti
     print(f"\n[SUCCESS] Metrics saved to '{output_json}'")
 
     return metrics
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Authentix Real Model Evaluation")

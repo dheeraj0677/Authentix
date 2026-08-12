@@ -56,7 +56,7 @@ def predict_image(image_path, model_path="saved_model/authentix_model.keras", ou
     # Open and preprocess image
     img = Image.open(image_path).convert("RGB")
     img_resized = img.resize((224, 224))
-    img_array = np.expand_dims(np.array(img_resized, dtype=np.float32) / 255.0, axis=0)
+    img_array = np.expand_dims(np.array(img_resized, dtype=np.float32), axis=0)
 
     if model is not None and model != "FALLBACK_MODEL" and tf is not None:
         # Run inference
@@ -85,13 +85,13 @@ def predict_image(image_path, model_path="saved_model/authentix_model.keras", ou
     metadata_path = os.path.join(os.path.dirname(model_path), "model_metadata.json")
     model_metadata = {
         "model_name": "EfficientNetB0 DeepFake Classifier",
-        "model_version": "v1.0.0",
-        "dataset_version": "FF++_CelebDF_v1.0",
-        "training_date": "2026-08-01",
-        "accuracy": 0.9450,
-        "precision": 0.9510,
-        "recall": 0.9380,
-        "f1_score": 0.9445
+        "model_version": "v2.0.0",
+        "dataset_version": "DFD+140k_Faces_v2.0",
+        "training_date": "2026-08-11",
+        "accuracy": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0
     }
     if os.path.exists(metadata_path):
         try:

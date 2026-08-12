@@ -36,6 +36,9 @@ def predict_video(video_path, model_path="saved_model/authentix_model.keras", ou
       ]
     }
     """
+    import time
+    start_time = time.time()
+
     model = get_or_load_model(model_path)
 
     cap = cv2.VideoCapture(video_path)
@@ -73,8 +76,14 @@ def predict_video(video_path, model_path="saved_model/authentix_model.keras", ou
         if frame_index % frame_step == 0:
             timestamp_sec = round(frame_index / fps, 2)
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            resized_frame = cv2.resize(rgb_frame, (224, 224))
-            frame_batch.append(resized_frame.astype(np.float32) / 255.0)
+            h, w = rgb_frame.shape[:2]
+            # Center-square crop to focus on people in the scene
+            min_dim = min(h, w)
+            start_x = (w - min_dim) // 2
+            start_y = (h - min_dim) // 2
+            cropped = rgb_frame[start_y:start_y + min_dim, start_x:start_x + min_dim]
+            resized_frame = cv2.resize(cropped, (224, 224))
+            frame_batch.append(resized_frame.astype(np.float32))
             frame_meta.append({"frame_index": frame_index, "timestamp_sec": timestamp_sec})
             frame_imgs_raw[frame_index] = frame.copy()
 
@@ -166,7 +175,7 @@ def predict_video(video_path, model_path="saved_model/authentix_model.keras", ou
     model_metadata = {
         "model_name": "EfficientNetB0 DeepFake Classifier",
         "model_version": "v1.0.0",
-        "dataset_version": "FF++_CelebDF_v1.0",
+        "dataset_version": "DFD+140k_Faces_v2.0",
         "training_date": "2026-08-01",
         "accuracy": 0.9450,
         "precision": 0.9510,
@@ -186,6 +195,8 @@ def predict_video(video_path, model_path="saved_model/authentix_model.keras", ou
     avg_raw_score = sum(f["raw_score"] for f in timeline) / len(timeline) if timeline else 0.5
     prob_real = round(avg_raw_score * 100.0, 2)
     prob_fake = round((1.0 - avg_raw_score) * 100.0, 2)
+
+    inference_time_sec = time.time() - start_time
 
     return {
         "is_video": True,

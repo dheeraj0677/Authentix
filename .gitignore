@@ -15,6 +15,8 @@ dist/
 npm-debug.log*
 
 # Deep Learning artifacts
+dl-model/data/
+dl-model/tf_wheel/
 dl-model/saved_model/
 dl-model/plots/
 dl-model/outputs/

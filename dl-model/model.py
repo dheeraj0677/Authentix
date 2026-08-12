@@ -17,7 +17,10 @@ def build_model(input_shape=(224, 224, 3)):
     inputs = layers.Input(shape=input_shape)
     x = base_model(inputs, training=False)
     x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dense(128, activation="relu")(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dense(256, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(1e-4))(x)
+    x = layers.Dropout(0.4)(x)
+    x = layers.Dense(128, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(1e-4))(x)
     x = layers.Dropout(0.3)(x)
     outputs = layers.Dense(1, activation="sigmoid")(x)
 

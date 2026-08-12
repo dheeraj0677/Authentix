@@ -8,7 +8,7 @@ Write-Host "======================================================" -ForegroundC
 Write-Host ""
 
 $rootDir = $PSScriptRoot
-$venvPython = Join-Path $rootDir "webapp\backend\venv\Scripts\python.exe"
+$venvPython = "python"
 $frontendDir = Join-Path $rootDir "webapp\frontend"
 $blockchainDir = Join-Path $rootDir "blockchain"
 
