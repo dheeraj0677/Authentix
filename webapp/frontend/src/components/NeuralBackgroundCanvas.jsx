@@ -76,10 +76,19 @@ export default function NeuralBackgroundCanvas() {
         width / 2, height / 2, 100,
         width / 2, height / 2, Math.max(width, height)
       );
-      bgGradient.addColorStop(0, '#030605');
+      bgGradient.addColorStop(0, '#040807');
       bgGradient.addColorStop(1, '#000000');
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
+
+      // Expanding Radar Pulse Wave
+      const pulseRadius = (frameCount * 1.5) % (Math.max(width, height) * 0.7);
+      const pulseAlpha = Math.max(0, 0.12 * (1 - pulseRadius / (Math.max(width, height) * 0.7)));
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, pulseRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(16, 185, 129, ${pulseAlpha})`;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
 
       // Update and Draw Nodes
       for (let i = 0; i < nodes.length; i++) {

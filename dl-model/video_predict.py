@@ -67,6 +67,16 @@ def predict_video(video_path, model_path="saved_model/authentix_model.keras", ou
     os.makedirs(output_dir, exist_ok=True)
     temp_frame_path = os.path.join(output_dir, "_temp_frame.jpg")
 
+    # Determine model input shape
+    target_size = (380, 380)
+    if model is not None and model != "FALLBACK_MODEL" and hasattr(model, "input_shape") and model.input_shape is not None:
+        try:
+            h, w = model.input_shape[1], model.input_shape[2]
+            if h is not None and w is not None:
+                target_size = (w, h)
+        except Exception:
+            pass
+
     # --- Pass 1: Collect all sampled frames (no per-frame inference yet) ---
     while cap.isOpened():
         ret, frame = cap.read()
@@ -82,7 +92,7 @@ def predict_video(video_path, model_path="saved_model/authentix_model.keras", ou
             start_x = (w - min_dim) // 2
             start_y = (h - min_dim) // 2
             cropped = rgb_frame[start_y:start_y + min_dim, start_x:start_x + min_dim]
-            resized_frame = cv2.resize(cropped, (224, 224))
+            resized_frame = cv2.resize(cropped, target_size)
             frame_batch.append(resized_frame.astype(np.float32))
             frame_meta.append({"frame_index": frame_index, "timestamp_sec": timestamp_sec})
             frame_imgs_raw[frame_index] = frame.copy()

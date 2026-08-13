@@ -11,11 +11,11 @@ def find_subfolder(parent_dir, names):
             return full_path
     return None
 
-def load_datasets(data_dir, img_size=(224, 224), batch_size=32, validation_split=0.3, seed=42, 
+def load_datasets(data_dir, img_size=(380, 380), batch_size=32, validation_split=0.3, seed=42, 
                   max_train_samples=None, max_val_samples=None, max_test_samples=None):
     """
     Loads images from dataset directory.
-    NOTE: EfficientNetB0 includes internal Rescaling(1/255) and Normalization layers,
+    NOTE: EfficientNet includes internal Rescaling/Normalization layers,
     so raw pixel values [0, 255] are passed directly to the model.
     """
     if not os.path.exists(data_dir):
@@ -31,6 +31,7 @@ def load_datasets(data_dir, img_size=(224, 224), batch_size=32, validation_split
     data_augmentation = tf.keras.Sequential([
         tf.keras.layers.RandomFlip("horizontal"),
         tf.keras.layers.RandomRotation(0.1),
+        tf.keras.layers.RandomTranslation(0.05, 0.05),
         tf.keras.layers.RandomBrightness(0.15),
         tf.keras.layers.RandomZoom((-0.1, 0.1)),
         tf.keras.layers.RandomContrast(0.15),

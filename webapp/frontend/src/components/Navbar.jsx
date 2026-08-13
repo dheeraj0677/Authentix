@@ -48,7 +48,7 @@ export default function Navbar({ wallet, userRole = 'Public User', onConnect, on
           </Link>
 
           {/* Desktop Nav Links (RBAC Filtered) */}
-          <nav className="hidden md:flex items-center space-x-1">
+          <nav className="hidden md:flex items-center space-x-1.5">
             {visibleNavLinks.map((link) => {
               const Icon = link.icon;
               const isActive = location.pathname === link.path;
@@ -56,13 +56,13 @@ export default function Navbar({ wallet, userRole = 'Public User', onConnect, on
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-mono font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-semibold'
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/80'
+                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border border-emerald-500/40 shadow-lg glow-emerald'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/80 border border-transparent'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-zinc-400'}`} />
                   <span>{link.label}</span>
                 </Link>
               );

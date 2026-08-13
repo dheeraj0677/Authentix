@@ -37,30 +37,43 @@ def get_or_load_model(model_path="saved_model/authentix_model.keras"):
         
     return _CACHED_MODEL
 
-def predict_image(image_path, model_path="saved_model/authentix_model.keras", output_gradcam_dir="outputs"):
+def predict_image(image_path, model_path="saved_model/authentix_model.keras", output_gradcam_dir="outputs", use_tta=True):
     """
     Runs Deep Learning inference on a single image file.
-    Returns prediction dictionary:
-    {
-       "prediction": "REAL" | "FAKE",
-       "confidence": float (percentage),
-       "raw_score": float,
-       "gradcam_path": str
-    }
+    Supports Test-Time Augmentation (TTA) for increased prediction stability.
     """
     model = get_or_load_model(model_path)
 
     import time
     start_time = time.time()
 
+    # Determine input size from loaded model if available
+    img_size = (380, 380)
+    if model is not None and model != "FALLBACK_MODEL" and hasattr(model, "input_shape") and model.input_shape is not None:
+        try:
+            h, w = model.input_shape[1], model.input_shape[2]
+            if h is not None and w is not None:
+                img_size = (w, h)
+        except Exception:
+            pass
+
     # Open and preprocess image
     img = Image.open(image_path).convert("RGB")
-    img_resized = img.resize((224, 224))
+    img_resized = img.resize(img_size)
     img_array = np.expand_dims(np.array(img_resized, dtype=np.float32), axis=0)
 
     if model is not None and model != "FALLBACK_MODEL" and tf is not None:
         # Run inference
-        raw_score = float(model.predict(img_array, verbose=0)[0][0])
+        score1 = float(model.predict(img_array, verbose=0)[0][0])
+        
+        if use_tta:
+            # Test-Time Augmentation: Predict on horizontally flipped image & average
+            img_flipped = img_resized.transpose(Image.FLIP_LEFT_RIGHT)
+            img_flipped_array = np.expand_dims(np.array(img_flipped, dtype=np.float32), axis=0)
+            score2 = float(model.predict(img_flipped_array, verbose=0)[0][0])
+            raw_score = (score1 + score2) / 2.0
+        else:
+            raw_score = score1
     else:
         # High confidence deterministic score based on file content
         import hashlib

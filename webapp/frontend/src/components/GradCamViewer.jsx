@@ -1,16 +1,7 @@
 import React from 'react';
-import { Eye, Flame, AlertTriangle } from 'lucide-react';
+import { Flame, AlertTriangle, Info } from 'lucide-react';
 import { getGradCamUrl } from '../utils/api';
-
-/**
- * Detects whether a blob URL or filename refers to a video.
- */
-function isVideoFile(url) {
-  if (!url) return false;
-  const lower = url.toLowerCase();
-  return lower.endsWith('.mp4') || lower.endsWith('.avi') || lower.endsWith('.mov') ||
-    lower.endsWith('.webm') || lower.endsWith('.mkv') || lower.startsWith('blob:');
-}
+import BeforeAfterSlider from './BeforeAfterSlider';
 
 export default function GradCamViewer({ originalFileUrl, gradcamUrl, gradcamFailed = false, isVideo = false }) {
   if (!originalFileUrl && !gradcamUrl) return null;
@@ -18,90 +9,60 @@ export default function GradCamViewer({ originalFileUrl, gradcamUrl, gradcamFail
   const fullGradcamUrl = getGradCamUrl(gradcamUrl);
 
   return (
-    <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-gray-200 flex items-center space-x-2">
-          <Flame className="w-5 h-5 text-amber-400" />
-          <span>Grad-CAM Explainability Heatmap</span>
-        </h3>
-        <span className="text-xs text-gray-400">
-          {isVideo ? 'Most Suspicious Frame — ' : ''}Convolutional Feature Activation Map
+    <div className="glass-card rounded-3xl p-6 sm:p-8 border border-zinc-800/80 bg-zinc-950/90 space-y-6 shadow-2xl animate-fadeIn">
+      
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-900 pb-4">
+        <div>
+          <h3 className="text-lg font-bold text-zinc-100 flex items-center space-x-2">
+            <Flame className="w-5 h-5 text-amber-400" />
+            <span>Grad-CAM Explainability Activation Map</span>
+          </h3>
+          <p className="text-xs text-zinc-400 font-mono mt-0.5">
+            {isVideo ? 'Most Suspicious Frame — ' : ''}Convolutional Feature Gradient Activation Overlay
+          </p>
+        </div>
+        <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-mono w-fit">
+          <span>XAI Module 1</span>
         </span>
       </div>
 
-      {/* Grad-CAM failed warning banner */}
-      {gradcamFailed && (
-        <div className="flex items-center space-x-2 p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>
-            Grad-CAM computation encountered an issue — the original image is shown in place of the heatmap.
-            This can happen when the model file is not yet trained or Grad-CAM layer traversal fails.
-          </span>
+      {/* Grad-CAM failure fallback */}
+      {gradcamFailed ? (
+        <div className="flex items-center space-x-3 p-4 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs font-mono">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+          <span>Grad-CAM generation issue — original image is displayed. Ensure the DL model is trained and active.</span>
         </div>
+      ) : (
+        /* Interactive Before/After Split Slider */
+        <BeforeAfterSlider
+          originalUrl={originalFileUrl}
+          gradcamUrl={fullGradcamUrl}
+          isVideo={isVideo}
+        />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {/* Original Image or Video */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2 text-xs text-gray-400 font-mono">
-            <Eye className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Original Upload</span>
-          </div>
-          <div className="relative rounded-xl overflow-hidden bg-black/50 aspect-square flex items-center justify-center border border-gray-800">
-            {originalFileUrl ? (
-              isVideo ? (
-                <video
-                  src={originalFileUrl}
-                  controls
-                  className="w-full h-full object-contain"
-                  preload="metadata"
-                >
-                  Your browser does not support the video tag.
-                </video>
-              ) : (
-                <img
-                  src={originalFileUrl}
-                  alt="Original Upload"
-                  className="w-full h-full object-contain"
-                />
-              )
-            ) : (
-              <span className="text-xs text-gray-500">No preview</span>
-            )}
-          </div>
+      {/* Color Map Legend Bar */}
+      <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+        <div className="flex items-center justify-between text-xs font-mono">
+          <span className="text-zinc-400 flex items-center space-x-1.5">
+            <Info className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Grad-CAM Jet Colormap Intensity Legend:</span>
+          </span>
+          <span className="text-amber-400 font-bold text-[11px]">Attention Heatmap</span>
         </div>
 
-        {/* Grad-CAM Heatmap Overlay (always an image — extracted frame for video) */}
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2 text-xs text-amber-400 font-mono">
-            <Flame className="w-3.5 h-3.5" />
-            <span>{gradcamFailed ? 'Original Frame (Heatmap Unavailable)' : 'Grad-CAM Heatmap Overlay'}</span>
-          </div>
-          <div className={`relative rounded-xl overflow-hidden bg-black/50 aspect-square flex items-center justify-center border ${gradcamFailed ? 'border-amber-500/20' : 'border-amber-500/20 glow-purple'}`}>
-            {fullGradcamUrl ? (
-              <img
-                src={fullGradcamUrl}
-                alt="Grad-CAM Heatmap Overlay"
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  // Fallback to original image if Grad-CAM static route not found
-                  if (originalFileUrl && !isVideo) e.target.src = originalFileUrl;
-                }}
-              />
-            ) : (
-              <span className="text-xs text-gray-500">Generating Heatmap...</span>
-            )}
-          </div>
-        </div>
+        {/* Gradient Color Scale Bar */}
+        <div className="relative w-full h-3 rounded-full overflow-hidden bg-gradient-to-r from-blue-600 via-cyan-400 via-yellow-400 via-orange-500 to-red-600 shadow-inner" />
 
+        <div className="flex justify-between text-[10px] font-mono text-zinc-400 pt-0.5">
+          <span>🔵 Low Attention (Natural background)</span>
+          <span>🟡 Moderate Neural Weight</span>
+          <span>🔴 High Artifact Attention (DeepFake region)</span>
+        </div>
       </div>
 
-      <p className="text-xs text-gray-400 italic">
-        {gradcamFailed
-          ? '* Grad-CAM could not be computed. Train the model first using train.py before running inference.'
-          : '* Red/yellow high-intensity regions indicate pixel areas that exerted maximum influence on the EfficientNetB0 binary decision.'}
-      </p>
     </div>
   );
 }
+

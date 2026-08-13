@@ -2,6 +2,7 @@ import React from 'react';
 import { ShieldCheck, ShieldAlert, Key, Cpu, ExternalLink, Loader2, FileText, Database, Clock, Flame } from 'lucide-react';
 import { getPdfReportUrl } from '../utils/api';
 import ExplainableAIViewer from './ExplainableAIViewer';
+import ConfidenceGauge from './ConfidenceGauge';
 
 export default function ResultCard({ result, onRegisterOnChain, isRegistering, wallet }) {
   if (!result) return null;
@@ -11,38 +12,10 @@ export default function ResultCard({ result, onRegisterOnChain, isRegistering, w
   const meta = result.model_metadata;
 
   return (
-    <div className="glass-card rounded-2xl p-6 border border-zinc-900 bg-black/90 space-y-6">
+    <div className="glass-card rounded-3xl p-6 sm:p-8 border border-zinc-800/80 bg-zinc-950/90 space-y-6 shadow-2xl animate-fadeIn">
       
-      {/* Header Badge */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className={`p-3 rounded-xl ${isReal ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
-            {isReal ? <ShieldCheck className="w-8 h-8" /> : <ShieldAlert className="w-8 h-8" />}
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className={`text-2xl font-bold tracking-wide ${isReal ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {result.prediction}
-              </span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-zinc-900 text-zinc-300 font-mono border border-zinc-800">
-                {confidence}% Confidence
-              </span>
-            </div>
-            <p className="text-xs text-zinc-400 mt-0.5 flex items-center space-x-1.5 font-mono">
-              <span>{meta?.model_name || 'EfficientNetB0 Classifier'}</span>
-              <span className="px-1.5 py-0.2 rounded bg-zinc-950 text-emerald-400 font-mono text-[10px] border border-emerald-500/30">
-                {meta?.model_version || 'v1.0.0'}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {result.is_on_chain && (
-          <span className="flex items-center space-x-1 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-mono">
-            <span>On-Chain Registered</span>
-          </span>
-        )}
-      </div>
+      {/* Animated Circular Gauge & Risk Meter */}
+      <ConfidenceGauge prediction={result.prediction} confidence={confidence} isReal={isReal} />
 
 
       {/* Model Version & Performance Metrics Metadata Panel */}

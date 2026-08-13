@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import LandingHero from '../components/LandingHero';
 import DropZone from '../components/DropZone';
 import ResultCard from '../components/ResultCard';
 import GradCamViewer from '../components/GradCamViewer';
 import { uploadAndDetect, registerOnBackend } from '../utils/api';
 import { registerFileOnChainMetaMask } from '../utils/wallet';
-import { Sparkles, AlertCircle, CheckCircle2, Film } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Film } from 'lucide-react';
 
 const MAX_FILE_SIZE_MB = 100;
 
@@ -82,26 +83,13 @@ export default function UploadPage({ wallet, onConnectWallet }) {
   };
 
   const isVideo = file && isVideoFile(file);
-  // Video timeline data from the result
   const videoTimeline = result?.timeline || null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-10">
 
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Module 1 &amp; 2 Integrated</span>
-        </div>
-
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-          DeepFake Detection &amp; Blockchain Registry
-        </h1>
-        <p className="text-gray-400 text-sm max-w-2xl mx-auto">
-          Upload an image or video to run EfficientNetB0 Deep Learning classification, visualize Grad-CAM activation heatmaps, and anchor SHA-256 cryptographic authenticity on the Ethereum blockchain.
-        </p>
-      </div>
+      {/* Hero Banner Component */}
+      <LandingHero />
 
       {/* Error Alert */}
       {errorMsg && (
