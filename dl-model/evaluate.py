@@ -19,7 +19,18 @@ def evaluate_model_performance(data_dir="data", model_path="saved_model/authenti
         return None
 
     try:
-        _, _, test_ds, label_map = load_datasets(data_dir, batch_size=32)
+        # Determine model input shape dynamically
+        img_size = (224, 224)
+        if model is not None and hasattr(model, "input_shape") and model.input_shape is not None:
+            try:
+                h, w = model.input_shape[1], model.input_shape[2]
+                if h is not None and w is not None:
+                    img_size = (w, h)
+            except Exception:
+                pass
+        
+        print(f"[INFO] Evaluating model with target image resolution: {img_size}")
+        _, _, test_ds, label_map = load_datasets(data_dir, img_size=img_size, batch_size=32)
         print(f"[INFO] Evaluating with class mapping: {label_map}")
 
         print("[INFO] Running inference on test set...")
@@ -62,7 +73,19 @@ def evaluate_model_performance(data_dir="data", model_path="saved_model/authenti
             p = (y_scores >= t).astype(int)
             tprs.append(np.sum((y_true == 1) & (p == 1)) / max(np.sum(y_true == 1), 1))
             fprs.append(np.sum((y_true == 0) & (p == 1)) / max(np.sum(y_true == 0), 1))
-        auc = round(float(np.trapz(tprs[::-1], fprs[::-1])), 4)
+        
+        trapz_fn = getattr(np, "trapezoid", getattr(np, "trapz", None))
+        if trapz_fn:
+            auc = round(float(trapz_fn(tprs[::-1], fprs[::-1])), 4)
+        else:
+            # Simple Riemann sum fallback for AUC
+            sorted_pairs = sorted(zip(fprs, tprs))
+            auc_val = 0.0
+            for i in range(1, len(sorted_pairs)):
+                dx = sorted_pairs[i][0] - sorted_pairs[i-1][0]
+                dy = (sorted_pairs[i][1] + sorted_pairs[i-1][1]) / 2.0
+                auc_val += dx * dy
+            auc = round(float(auc_val), 4)
 
     metrics = {
         "dataset": data_dir,
