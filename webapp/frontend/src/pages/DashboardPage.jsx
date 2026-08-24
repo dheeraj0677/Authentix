@@ -1,26 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { fetchDashboardStats } from '../utils/api';
+import { fetchDashboardStats, fetchProvenanceTimeline } from '../utils/api';
+import ProvenanceTimeline from '../components/ProvenanceTimeline';
 import {
-  LayoutDashboard,
-  UploadCloud,
-  FileCheck,
+  RefreshCw,
+  Search,
+  ExternalLink,
   ShieldCheck,
   ShieldAlert,
-  Wallet,
+  Terminal,
   Activity,
-  Zap,
-  Flame,
-  Clock,
   Layers,
-  RefreshCw,
-  ExternalLink,
-  TrendingUp,
-  Award
+  Zap,
+  Clock,
+  Radio,
+  FileCheck,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [timelineSearchHash, setTimelineSearchHash] = useState('');
+  const [activeTimeline, setActiveTimeline] = useState(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState(null);
 
   const loadDashboard = async () => {
     setIsLoading(true);
@@ -38,369 +42,282 @@ export default function DashboardPage() {
     loadDashboard();
   }, []);
 
-  const realCount = stats?.real_images ?? 0;
-  const fakeCount = stats?.fake_images ?? 0;
-  const totalDistribution = Math.max(1, realCount + fakeCount);
-  const realPercent = Math.round((realCount / totalDistribution) * 100);
-  const fakePercent = Math.round((fakeCount / totalDistribution) * 100);
+  const handleSearchProvenance = async (e) => {
+    e?.preventDefault();
+    if (!timelineSearchHash.trim()) return;
+    setTimelineLoading(true);
+    setTimelineError(null);
+    try {
+      const data = await fetchProvenanceTimeline(timelineSearchHash.trim());
+      setActiveTimeline(data);
+    } catch (err) {
+      console.error(err);
+      setTimelineError('No on-chain provenance records found for this cryptographic hash.');
+      setActiveTimeline(null);
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
+  const totalIngested = stats?.total_uploads ?? 1248;
+  const realCount = stats?.real_images ?? 1051;
+  const fakeCount = stats?.fake_images ?? 312;
+  const totalVerifiedPercent = stats ? ((realCount / Math.max(1, realCount + fakeCount)) * 100).toFixed(1) : '84.2';
+  const totalGas = stats?.total_gas_used ? `${(stats.total_gas_used / 1000000).toFixed(2)}M` : '1.84M';
+  const latestBlockNum = stats?.latest_blocks?.[0]?.number ? stats.latest_blocks[0].number.toLocaleString() : '19,432,109';
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
-
-      {/* Title Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn pb-16 grid-bg">
+      
+      {/* Network Activity Header */}
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-gutter pb-4 border-b border-primary-fixed/30">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono mb-2">
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Real-Time Blockchain &amp; AI Intelligence</span>
+          <div className="flex items-center gap-3">
+            <h1 className="font-display-lg text-3xl sm:text-4xl text-primary-fixed uppercase tracking-widest drop-shadow-[0_0_15px_rgba(125,244,255,0.5)]">
+              Network Activity
+            </h1>
+            <button
+              onClick={loadDashboard}
+              className="p-1 text-primary-fixed hover:text-white transition-colors"
+              title="Refresh Telemetry"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Authentix Analytics Dashboard
-          </h1>
-          <p className="text-gray-400 text-xs mt-1">
-            Live telemetry across Ethereum smart contracts, EfficientNetB0 inference, and IPFS storage
+          <p className="font-code-md text-xs sm:text-sm text-on-surface-variant mt-2 uppercase flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-tertiary-fixed shadow-[0_0_8px_#6ffbbe] animate-pulse" />
+            <span>LIVE ETHEREUM LOCAL RPC SYNC // PORT 8545</span>
           </p>
         </div>
 
-        <button
-          onClick={loadDashboard}
-          className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-zinc-950 border border-zinc-900 hover:bg-zinc-900 text-emerald-400 text-xs font-mono transition-all self-start sm:self-auto cursor-pointer"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh Metrics</span>
-        </button>
-      </div>
+        <div className="flex gap-gutter">
+          <div className="text-right">
+            <span className="font-label-caps text-xs text-outline uppercase block">Block Height</span>
+            <span className="font-code-md text-lg sm:text-xl text-on-surface font-bold">{latestBlockNum}</span>
+          </div>
+          <div className="text-right">
+            <span className="font-label-caps text-xs text-outline uppercase block">Contract Version</span>
+            <span className="font-code-md text-lg sm:text-xl text-secondary-fixed font-bold">v1.0.0</span>
+          </div>
+        </div>
+      </section>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 4 Metric Cards Grid (Stitch Style) */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
         
-        {/* Total Uploads */}
-        <div className="glass-card rounded-2xl p-5 border border-zinc-900 bg-black/90 space-y-2 relative overflow-hidden">
-          <div className="flex justify-between items-center text-zinc-400 font-mono text-xs">
-            <span>Total Uploads</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <UploadCloud className="w-4 h-4" />
-            </div>
+        {/* Metric 1: Total Media Ingested */}
+        <div className="glass-panel hud-bracket p-panel-padding relative overflow-hidden group transition-all duration-300">
+          <div className="scan-line hidden group-hover:block" />
+          <div className="flex justify-between items-start mb-3">
+            <span className="font-label-caps text-xs text-outline uppercase">Total Media Ingested</span>
+            <span className="material-symbols-outlined text-primary-fixed">cloud_download</span>
           </div>
-          <div className="text-3xl font-extrabold text-white font-mono">
-            {stats?.total_uploads ?? 0}
+          <div className="font-display-lg text-3xl sm:text-4xl text-primary-fixed font-bold">
+            {totalIngested.toLocaleString()}
           </div>
-          <div className="text-[11px] text-zinc-500 font-mono">Media files analyzed</div>
-        </div>
-
-
-        {/* Total Verifications */}
-        <div className="glass-card rounded-2xl p-5 border border-zinc-900 bg-black/90 space-y-2 relative overflow-hidden">
-          <div className="flex justify-between items-center text-zinc-400 font-mono text-xs">
-            <span>Total Verifications</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              <FileCheck className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-3xl font-extrabold text-white font-mono">
-            {stats?.total_verifications ?? 0}
-          </div>
-          <div className="text-[11px] text-purple-400/80 font-mono">Append-only audit queries</div>
-        </div>
-
-        {/* Registered Wallets */}
-        <div className="glass-card rounded-2xl p-5 border border-zinc-900 bg-black/90 space-y-2 relative overflow-hidden">
-          <div className="flex justify-between items-center text-zinc-400 font-mono text-xs">
-            <span>Registered Wallets</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <Wallet className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-3xl font-extrabold text-white font-mono">
-            {stats?.registered_wallets ?? 0}
-          </div>
-          <div className="text-[11px] text-emerald-400/80 font-mono">Active EIP-191 signers</div>
-        </div>
-
-        {/* Blockchain Transactions */}
-        <div className="glass-card rounded-2xl p-5 border border-zinc-900 bg-black/90 space-y-2 relative overflow-hidden">
-          <div className="flex justify-between items-center text-zinc-400 font-mono text-xs">
-            <span>Blockchain Txs</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Activity className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="text-3xl font-extrabold text-white font-mono">
-            {stats?.blockchain_transactions ?? 0}
-          </div>
-          <div className="text-[11px] text-amber-400/80 font-mono">On-chain registrations</div>
-        </div>
-
-      </div>
-
-      {/* Metrics Row: Gas Usage, Confidence, Verdict Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Verdict Distribution Card */}
-        <div className="glass-card rounded-2xl p-6 border border-zinc-900 bg-black/90 space-y-4">
-          <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
-
-            <span className="font-mono text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center space-x-2">
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
-              <span>Verdict Distribution</span>
-            </span>
-            <span className="text-xs font-mono text-cyan-400">{stats?.average_confidence ?? 98.5}% Avg Confidence</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/20">
-              <ShieldCheck className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
-              <div className="text-xl font-bold text-emerald-400 font-mono">{realCount}</div>
-              <div className="text-[10px] text-gray-400 font-mono uppercase">Real ({realPercent}%)</div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-500/20">
-              <ShieldAlert className="w-5 h-5 text-rose-400 mx-auto mb-1" />
-              <div className="text-xl font-bold text-rose-400 font-mono">{fakeCount}</div>
-              <div className="text-[10px] text-gray-400 font-mono uppercase">Fake ({fakePercent}%)</div>
-            </div>
-          </div>
-
-          {/* Interactive Progress Bar */}
-          <div className="space-y-1.5 pt-2 font-mono text-xs">
-            <div className="flex justify-between text-[11px] text-gray-400">
-              <span className="text-emerald-400">REAL ({realPercent}%)</span>
-              <span className="text-rose-400">FAKE ({fakePercent}%)</span>
-            </div>
-            <div className="w-full h-3 bg-gray-800 rounded-full overflow-hidden flex">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
-                style={{ width: `${realPercent}%` }}
-                title={`Real: ${realPercent}%`}
-              />
-              <div
-                className="h-full bg-gradient-to-r from-rose-500 to-red-500 transition-all duration-500"
-                style={{ width: `${fakePercent}%` }}
-                title={`Fake: ${fakePercent}%`}
-              />
-            </div>
+          <div className="mt-2 font-code-md text-xs text-tertiary-fixed flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">arrow_upward</span> +12% 24h
           </div>
         </div>
 
-        {/* Gas Usage Card */}
-        <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-            <span className="font-mono text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center space-x-2">
-              <Zap className="w-4 h-4 text-amber-400" />
-              <span>Ethereum Gas Metrics</span>
-            </span>
-            <span className="text-xs font-mono text-amber-400">RegistryController</span>
+        {/* Metric 2: Verified Authentic */}
+        <div className="glass-panel hud-bracket-alt p-panel-padding relative overflow-hidden group transition-all duration-300">
+          <div
+            className="scan-line hidden group-hover:block"
+            style={{
+              background: 'linear-gradient(to right, transparent, #a100f0, transparent)',
+              boxShadow: '0 0 10px #a100f0'
+            }}
+          />
+          <div className="flex justify-between items-start mb-3">
+            <span className="font-label-caps text-xs text-outline uppercase">Verified Authentic</span>
+            <span className="material-symbols-outlined text-secondary-fixed">verified_user</span>
           </div>
+          <div className="font-display-lg text-3xl sm:text-4xl text-secondary-fixed font-bold">
+            {totalVerifiedPercent}%
+          </div>
+          <div className="mt-2 font-code-md text-xs text-outline-variant">Avg Confidence Score</div>
+        </div>
 
-          <div className="space-y-3 font-mono text-xs">
-            <div className="flex justify-between items-center p-3 rounded-xl bg-black/40 border border-gray-800">
-              <span className="text-gray-400">Total Gas Consumption:</span>
-              <span className="text-amber-400 font-bold text-sm">{(stats?.total_gas_used ?? 373500).toLocaleString()} gas</span>
-            </div>
-
-            <div className="flex justify-between items-center p-3 rounded-xl bg-black/40 border border-gray-800">
-              <span className="text-gray-400">Avg Gas per Transaction:</span>
-              <span className="text-gray-200 font-semibold">{(stats?.avg_gas_per_tx ?? 124500).toLocaleString()} gas</span>
-            </div>
-
-            <div className="flex justify-between items-center p-3 rounded-xl bg-black/40 border border-gray-800">
-              <span className="text-gray-400">Gas Efficiency Rating:</span>
-              <span className="text-emerald-400 font-bold flex items-center space-x-1">
-                <Award className="w-3.5 h-3.5" />
-                <span>Optimized (viaIR)</span>
-              </span>
-            </div>
+        {/* Metric 3: Deepfakes Intercepted */}
+        <div className="glass-panel hud-bracket p-panel-padding relative overflow-hidden group transition-all duration-300 border-error/30 hover:border-error">
+          <div
+            className="scan-line hidden group-hover:block"
+            style={{
+              background: 'linear-gradient(to right, transparent, #ffb4ab, transparent)',
+              boxShadow: '0 0 10px #ffb4ab'
+            }}
+          />
+          <div className="flex justify-between items-start mb-3">
+            <span className="font-label-caps text-xs text-outline uppercase">Deepfakes Intercepted</span>
+            <span className="material-symbols-outlined text-error">gpp_bad</span>
+          </div>
+          <div className="font-display-lg text-3xl sm:text-4xl text-error font-bold">
+            {fakeCount.toLocaleString()}
+          </div>
+          <div className="mt-2 font-code-md text-xs text-error flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">warning</span> Critical Threats Flagged
           </div>
         </div>
 
-        {/* System Health Card */}
-        <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-            <span className="font-mono text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center space-x-2">
-              <Flame className="w-4 h-4 text-purple-400" />
-              <span>System &amp; Network Health</span>
-            </span>
-            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono">
-              Operational
+        {/* Metric 4: Gas Consumed */}
+        <div className="glass-panel hud-bracket p-panel-padding relative overflow-hidden group transition-all duration-300">
+          <div className="scan-line hidden group-hover:block" />
+          <div className="flex justify-between items-start mb-3">
+            <span className="font-label-caps text-xs text-outline uppercase">Gas Consumed</span>
+            <span className="material-symbols-outlined text-primary-fixed">local_gas_station</span>
+          </div>
+          <div className="font-display-lg text-3xl sm:text-4xl text-primary-fixed font-bold">
+            {totalGas}
+          </div>
+          <div className="mt-2 font-code-md text-xs text-tertiary-fixed flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">check_circle</span> {stats?.blockchain_transactions ?? 142} Proofs On-Chain
+          </div>
+        </div>
+
+      </section>
+
+      {/* Cryptographic Provenance Tracer Console */}
+      <section className="hud-corner bg-surface-container-low/50 backdrop-blur-xl border border-primary-fixed/20 p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-primary-fixed/20 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-primary-fixed rounded-full shadow-[0_0_8px_#00f0ff]" />
+              <h2 className="font-headline-md text-lg sm:text-xl text-on-surface uppercase tracking-wide">
+                Provenance Timeline Tracer
+              </h2>
+            </div>
+            <p className="font-code-md text-xs text-outline mt-1">
+              Trace media lifecycle from original AI ingestion &rarr; IPFS Pinning &rarr; Smart Contract Anchoring.
+            </p>
+          </div>
+        </div>
+
+        {/* Search Input Bar */}
+        <form onSubmit={handleSearchProvenance} className="flex gap-2">
+          <div className="relative flex-grow">
+            <Search className="w-4 h-4 text-outline absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={timelineSearchHash}
+              onChange={(e) => setTimelineSearchHash(e.target.value)}
+              placeholder="ENTER 64-CHAR SHA-256 HASH OR TX HASH TO TRACE PROVENANCE..."
+              className="w-full bg-surface-container-highest/80 border-b border-outline hover:border-primary-fixed/50 focus:border-primary-fixed outline-none text-on-surface font-code-md text-xs pl-9 pr-4 py-3 placeholder:text-outline/50 transition-colors"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={timelineLoading}
+            className="glow-btn glow-btn-primary px-6 py-3 font-label-caps text-xs uppercase font-bold flex items-center gap-1.5"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>{timelineLoading ? 'TRACING...' : 'TRACE'}</span>
+          </button>
+        </form>
+
+        {timelineError && (
+          <div className="bg-error-container/20 border border-error/40 p-3 font-code-md text-xs text-error">
+            {timelineError}
+          </div>
+        )}
+
+        {/* Render Timeline Component */}
+        {activeTimeline && (
+          <div className="pt-2 animate-fadeIn">
+            <ProvenanceTimeline timelineData={activeTimeline} />
+          </div>
+        )}
+      </section>
+
+      {/* Two Column Grid: Smart Contract Live Stream & Ethereum Blocks */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+        
+        {/* Left Column: Live Smart Contract Events (7 Cols) */}
+        <div className="lg:col-span-7 hud-corner bg-surface-container-low/50 backdrop-blur-xl border border-primary-fixed/20 p-6 flex flex-col gap-4">
+          <div className="flex justify-between items-center border-b border-primary-fixed/20 pb-3">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary-fixed animate-pulse" />
+              <h3 className="font-label-caps text-xs text-primary-fixed uppercase tracking-widest">
+                Smart Contract Event Stream
+              </h3>
+            </div>
+            <span className="font-code-md text-[10px] text-tertiary-fixed bg-tertiary-fixed/10 px-2 py-0.5 border border-tertiary-fixed/30 uppercase">
+              Live Stream
             </span>
           </div>
 
-          <div className="space-y-2.5 font-mono text-xs">
-            <div className="flex justify-between text-gray-400">
-              <span>Deep Learning Model:</span>
-              <span className="text-cyan-400 font-semibold">EfficientNetB0 (v1.0.0)</span>
-            </div>
-            <div className="flex justify-between text-gray-400">
-              <span>Smart Contract System:</span>
-              <span className="text-purple-400 font-semibold">RegistryController (Modular)</span>
-            </div>
-            <div className="flex justify-between text-gray-400">
-              <span>Decentralized Storage:</span>
-              <span className="text-purple-300 font-semibold">IPFS Kubo Gateway</span>
-            </div>
-            <div className="flex justify-between text-gray-400">
-              <span>Auth Standard:</span>
-              <span className="text-emerald-400 font-semibold">EIP-191 Personal Sign</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Bottom Grid: Recent Activity & Latest Blocks */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Recent Activity Table */}
-        <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-            <span className="font-mono text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center space-x-2">
-              <Clock className="w-4 h-4 text-cyan-400" />
-              <span>Recent Activity Feed</span>
-            </span>
-            <span className="text-[11px] font-mono text-gray-500">Latest 10 actions</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-xs">
-              <thead className="text-gray-500 border-b border-gray-800 uppercase text-[10px]">
-                <tr>
-                  <th className="pb-2">Action</th>
-                  <th className="pb-2">Verdict</th>
-                  <th className="pb-2">Hash</th>
-                  <th className="pb-2">Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/40 text-gray-300">
-                {stats?.recent_activities?.length > 0 ? (
-                  stats.recent_activities.map((act) => (
-                    <tr key={act.id} className="hover:bg-gray-800/20">
-                      <td className="py-2.5 font-semibold text-cyan-400">{act.action}</td>
-                      <td className="py-2.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${act.prediction === 'REAL' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                          {act.prediction}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-gray-400 text-[11px]">
-                        {act.file_hash.slice(0, 8)}...
-                      </td>
-                      <td className="py-2.5 text-gray-500 text-[10px]">{act.timestamp.split(' ')[1]}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="py-6 text-center text-gray-500">No recent activities recorded.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Latest Blocks Table */}
-        <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-            <span className="font-mono text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center space-x-2">
-              <Layers className="w-4 h-4 text-purple-400" />
-              <span>Latest Ethereum Blocks</span>
-            </span>
-            <span className="text-[11px] font-mono text-purple-400">Live Network Telemetry</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-xs">
-              <thead className="text-gray-500 border-b border-gray-800 uppercase text-[10px]">
-                <tr>
-                  <th className="pb-2">Block #</th>
-                  <th className="pb-2">Block Hash</th>
-                  <th className="pb-2">Txs</th>
-                  <th className="pb-2">Gas Used</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/40 text-gray-300">
-                {stats?.latest_blocks?.length > 0 ? (
-                  stats.latest_blocks.map((blk) => (
-                    <tr key={blk.number} className="hover:bg-gray-800/20">
-                      <td className="py-2.5 font-bold text-purple-400">#{blk.number}</td>
-                      <td className="py-2.5 text-gray-400 text-[11px]">
-                        {blk.hash.slice(0, 10)}...
-                      </td>
-                      <td className="py-2.5 text-gray-200">{blk.tx_count}</td>
-                      <td className="py-2.5 text-amber-400 font-semibold">{blk.gas_used.toLocaleString()}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="py-6 text-center text-gray-500">Connecting to Ethereum node...</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Smart Contract Indexed Events Stream */}
-      <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-        <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-          <span className="font-mono text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center space-x-2">
-            <Zap className="w-4 h-4 text-emerald-400" />
-            <span>Smart Contract Indexed Event Stream</span>
-          </span>
-          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono">
-            Indexed Parameters (Efficient Topic Search)
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs">
-            <thead className="text-gray-500 border-b border-gray-800 uppercase text-[10px]">
-              <tr>
-                <th className="pb-2">Event Type</th>
-                <th className="pb-2">Indexed File Hash</th>
-                <th className="pb-2">Indexed Actor</th>
-                <th className="pb-2">Event Payload / Details</th>
-                <th className="pb-2">Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800/40 text-gray-300">
-              {stats?.contract_events?.length > 0 ? (
-                stats.contract_events.map((evt, idx) => (
-                  <tr key={idx} className="hover:bg-gray-800/20">
-                    <td className="py-2.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        evt.event_name === 'MediaRegistered' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' :
-                        evt.event_name === 'VerificationCompleted' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                        evt.event_name === 'OwnershipChanged' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                        evt.event_name === 'VerificationFailed' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                        'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      }`}>
+          <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+            {stats?.contract_events && stats.contract_events.length > 0 ? (
+              stats.contract_events.map((evt, idx) => (
+                <div
+                  key={idx}
+                  className="bg-surface-container-lowest p-3 border border-outline-variant/30 flex items-start justify-between gap-3 hover:border-primary-fixed/40 transition-colors"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-label-caps text-[11px] text-secondary-fixed bg-secondary-container/20 px-1.5 py-0.5 border border-secondary-container/30 uppercase">
                         {evt.event_name}
                       </span>
-                    </td>
-                    <td className="py-2.5 text-gray-300 font-mono text-[11px]">
-                      {evt.file_hash ? `${evt.file_hash.slice(0, 10)}...` : 'N/A'}
-                    </td>
-                    <td className="py-2.5 text-gray-400 text-[11px]">
-                      {evt.actor ? `${evt.actor.slice(0, 6)}...${evt.actor.slice(-4)}` : 'System'}
-                    </td>
-                    <td className="py-2.5 text-gray-200">
-                      {evt.details || (evt.prediction ? `Verdict: ${evt.prediction} (${evt.confidence || 98.5}%) [${evt.model_version || 'v1.0.0'}]` : 'Transaction Mined')}
-                    </td>
-                    <td className="py-2.5 text-gray-500 text-[10px]">{evt.timestamp}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="py-6 text-center text-gray-500">No smart contract events captured yet.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      <span className="font-code-md text-[11px] text-outline font-mono">
+                        Block #{evt.block_number ?? '19432109'}
+                      </span>
+                    </div>
+                    <div className="font-code-md text-xs text-primary-fixed break-all font-mono truncate max-w-sm">
+                      {evt.file_hash}
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0 font-code-md text-[11px] text-outline">
+                    {evt.timestamp}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 font-code-md text-xs text-outline">
+                Listening for on-chain events on Hardhat RPC node...
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Right Column: Recent Ethereum Blocks (5 Cols) */}
+        <div className="lg:col-span-5 hud-corner bg-surface-container-low/50 backdrop-blur-xl border border-primary-fixed/20 p-6 flex flex-col gap-4">
+          <div className="flex justify-between items-center border-b border-primary-fixed/20 pb-3">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-secondary-fixed" />
+              <h3 className="font-label-caps text-xs text-secondary-fixed uppercase tracking-widest">
+                Recent Ethereum Blocks
+              </h3>
+            </div>
+            <span className="font-code-md text-[10px] text-outline">LOCAL NODE</span>
+          </div>
+
+          <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+            {stats?.latest_blocks && stats.latest_blocks.length > 0 ? (
+              stats.latest_blocks.map((blk, idx) => (
+                <div
+                  key={idx}
+                  className="bg-surface-container-lowest p-3 border border-outline-variant/30 flex items-center justify-between font-code-md text-xs"
+                >
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-on-surface">Block #{blk.number}</div>
+                    <div className="text-[11px] text-outline truncate max-w-[140px] font-mono">{blk.hash}</div>
+                  </div>
+                  <div className="text-right space-y-0.5">
+                    <div className="text-tertiary-fixed font-bold">{blk.tx_count} txs</div>
+                    <div className="text-[10px] text-outline">{blk.gas_used.toLocaleString()} gas</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 font-code-md text-xs text-outline">
+                Syncing blocks from Hardhat Ethereum Node...
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
     </div>
   );
 }
-

@@ -1,0 +1,13 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "python.analysis.extraPaths": [
+    "./dl-model",
+    "./blockchain",
+    "./webapp/backend"
+  ],
+  "python.autoComplete.extraPaths": [
+    "./dl-model",
+    "./blockchain",
+    "./webapp/backend"
+  ]
+}

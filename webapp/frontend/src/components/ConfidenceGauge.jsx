@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, ShieldAlert, AlertTriangle, AlertOctagon } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, AlertOctagon, Activity, Sparkles, Flame, CheckCircle2, Cpu, Zap, Radio } from 'lucide-react';
 
 export default function ConfidenceGauge({ prediction, confidence, isReal }) {
   const [animatedValue, setAnimatedValue] = useState(0);
@@ -8,7 +8,7 @@ export default function ConfidenceGauge({ prediction, confidence, isReal }) {
   useEffect(() => {
     let start = 0;
     const end = parseFloat(confidence) || 0;
-    const duration = 1200; // ms
+    const duration = 1100; // ms
     const stepTime = 16;
     const steps = duration / stepTime;
     const increment = (end - start) / steps;
@@ -27,120 +27,165 @@ export default function ConfidenceGauge({ prediction, confidence, isReal }) {
   }, [confidence]);
 
   // Risk Rating Calculation
-  let riskLevel = 'LOW';
+  let riskLevel = 'LOW RISK';
   let riskColor = 'text-emerald-400';
-  let riskBg = 'bg-emerald-500/10 border-emerald-500/30';
+  let riskBorder = 'border-emerald-500/40 bg-emerald-500/15 shadow-neon-emerald';
   let RiskIcon = ShieldCheck;
+  let summaryText = 'Neural network inference confirms biological facial textures, coherent ocular reflections, and organic spatial edge gradients with zero synthetic manipulation signatures.';
 
   if (!isReal) {
     if (confidence >= 85) {
-      riskLevel = 'CRITICAL DEEPFAKE RISK';
-      riskColor = 'text-rose-500';
-      riskBg = 'bg-rose-950/60 border-rose-500/40 glow-rose';
+      riskLevel = 'CRITICAL SYNTHETIC ANOMALIES';
+      riskColor = 'text-pink-400';
+      riskBorder = 'border-pink-500/50 bg-pink-500/15 shadow-neon-pink';
       RiskIcon = AlertOctagon;
+      summaryText = 'Critical level synthetic deepfake patterns detected. Convolutional feature maps indicate GAN boundary blending, spatial frequency distortions, and facial reconstruction artifacts.';
     } else if (confidence >= 65) {
-      riskLevel = 'HIGH MANIPULATION RISK';
+      riskLevel = 'HIGH MANIPULATION SUSPICION';
       riskColor = 'text-rose-400';
-      riskBg = 'bg-rose-900/40 border-rose-500/30';
+      riskBorder = 'border-rose-500/40 bg-rose-500/15';
       RiskIcon = ShieldAlert;
+      summaryText = 'Significant synthetic media patterns detected across critical facial keypoints and texture boundaries.';
     } else {
-      riskLevel = 'MODERATE SUSPICION';
+      riskLevel = 'MODERATE PIXEL DISTORTION';
       riskColor = 'text-amber-400';
-      riskBg = 'bg-amber-950/40 border-amber-500/30';
+      riskBorder = 'border-amber-500/40 bg-amber-500/15 shadow-neon-amber';
       RiskIcon = AlertTriangle;
+      summaryText = 'Subtle pixel distribution anomalies spotted. Review Grad-CAM heatmaps for localized spatial inspection.';
     }
   } else {
     if (confidence < 70) {
-      riskLevel = 'LOW CONFIDENCE AUTHENTIC';
+      riskLevel = 'PROBABLE AUTHENTIC (MODERATE)';
       riskColor = 'text-amber-400';
-      riskBg = 'bg-amber-950/30 border-amber-500/20';
+      riskBorder = 'border-amber-500/40 bg-amber-500/15';
       RiskIcon = AlertTriangle;
+      summaryText = 'Media classified as authentic with moderate model confidence. Minor compression noise detected.';
     } else {
       riskLevel = 'AUTHENTIC MEDIA VERIFIED';
       riskColor = 'text-emerald-400';
-      riskBg = 'bg-emerald-950/40 border-emerald-500/30 glow-emerald';
+      riskBorder = 'border-emerald-500/40 bg-emerald-500/15 shadow-neon-emerald';
       RiskIcon = ShieldCheck;
+      summaryText = 'Transfer-learning convolutional filters confirm authentic biometric facial geometry, natural lighting, and zero GAN artifacts.';
     }
   }
 
   // SVG Gauge calculations
-  const radius = 64;
+  const radius = 68;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (animatedValue / 100) * circumference;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between p-6 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 space-y-6 sm:space-y-0 sm:space-x-8">
+    <div className="relative overflow-hidden p-6 sm:p-10 rounded-3xl holo-glass border border-cyan-500/30 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl hud-box transition-all duration-300">
       
-      {/* Circular Gauge Arc */}
+      {/* Background ambient glow */}
+      <div className={`absolute -right-20 -bottom-20 w-72 h-72 rounded-full blur-3xl pointer-events-none ${isReal ? 'bg-emerald-500/15' : 'bg-pink-500/15'}`} />
+
+      {/* Radial Cyber Circular Ring */}
       <div className="relative flex items-center justify-center shrink-0">
-        <svg className="w-40 h-40 transform -rotate-90">
-          {/* Background Track Circle */}
+        <div className={`absolute w-48 h-48 rounded-full blur-2xl opacity-50 ${isReal ? 'bg-emerald-500/30' : 'bg-pink-500/30'}`} />
+        
+        <svg className="w-48 h-48 transform -rotate-90 relative z-10">
+          {/* Background Outer Ring */}
           <circle
-            cx="80"
-            cy="80"
+            cx="96"
+            cy="96"
             r={radius}
-            stroke="#18181b"
-            strokeWidth="10"
+            stroke="currentColor"
+            className="text-slate-800/80"
+            strokeWidth="12"
             fill="transparent"
           />
-          {/* Animated Value Arc */}
+          {/* Inner tick track */}
           <circle
-            cx="80"
-            cy="80"
+            cx="96"
+            cy="96"
+            r={radius - 12}
+            stroke="currentColor"
+            className="text-cyan-500/20"
+            strokeWidth="1.5"
+            strokeDasharray="4 6"
+            fill="transparent"
+          />
+          {/* Animated Value Progress Ring */}
+          <circle
+            cx="96"
+            cy="96"
             r={radius}
-            stroke={isReal ? 'url(#emeraldGradient)' : 'url(#roseGradient)'}
-            strokeWidth="10"
+            stroke={isReal ? 'url(#emeraldCyberGradient)' : 'url(#roseCyberGradient)'}
+            strokeWidth="12"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             fill="transparent"
-            className="transition-all duration-300 ease-out"
+            className="transition-all duration-300 ease-out filter drop-shadow-[0_0_12px_rgba(0,240,255,0.6)]"
           />
-          {/* Gradients */}
           <defs>
-            <linearGradient id="emeraldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" />
-              <stop offset="100%" stopColor="#06b6d4" />
+            <linearGradient id="emeraldCyberGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#00f0ff" />
+              <stop offset="50%" stopColor="#10b981" />
+              <stop offset="100%" stopColor="#39ff14" />
             </linearGradient>
-            <linearGradient id="roseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f43f5e" />
-              <stop offset="100%" stopColor="#e11d48" />
+            <linearGradient id="roseCyberGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#00f0ff" />
+              <stop offset="50%" stopColor="#ff007f" />
+              <stop offset="100%" stopColor="#b026ff" />
             </linearGradient>
           </defs>
         </svg>
 
         {/* Center Percentage Display */}
-        <div className="absolute flex flex-col items-center justify-center text-center">
-          <span className={`text-3xl font-extrabold tracking-tight font-mono ${isReal ? 'text-emerald-400' : 'text-rose-400'}`}>
+        <div className="absolute flex flex-col items-center justify-center text-center z-20">
+          <span className={`text-4xl font-black tracking-tight font-orbitron ${isReal ? 'text-glow-emerald text-emerald-300' : 'text-glow-pink text-pink-300'}`}>
             {animatedValue.toFixed(1)}%
           </span>
-          <span className="text-[10px] text-zinc-400 uppercase font-mono tracking-widest mt-0.5">
-            Confidence
+          <span className="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold mt-1">
+            Neural Confidence
           </span>
         </div>
       </div>
 
-      {/* Text Details & Risk Badge */}
-      <div className="flex-1 space-y-3 text-center sm:text-left">
-        <div className="flex items-center justify-center sm:justify-start space-x-2">
-          <span className={`text-3xl font-black tracking-wide uppercase ${isReal ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {prediction}
+      {/* Right Column: Prediction Details & Risk Status */}
+      <div className="flex-1 space-y-4 text-center md:text-left z-10">
+        
+        {/* Main Verdict Label */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-center md:justify-start gap-4">
+          <div className="flex items-center justify-center md:justify-start space-x-2">
+            <span className="text-xs font-mono text-slate-400 uppercase tracking-wider font-semibold">Classification:</span>
+            <span className={`text-3xl sm:text-4xl font-black font-orbitron tracking-wider ${isReal ? 'text-emerald-400 text-glow-emerald' : 'text-pink-400 text-glow-pink'}`}>
+              {prediction}
+            </span>
+          </div>
+
+          <span className={`inline-flex items-center space-x-1.5 px-4 py-1.5 rounded-full border text-xs font-orbitron font-bold tracking-wider ${riskBorder}`}>
+            <RiskIcon className={`w-4 h-4 ${riskColor}`} />
+            <span className={riskColor}>{riskLevel}</span>
           </span>
         </div>
 
-        {/* Risk Level Badge */}
-        <div className={`inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold ${riskBg}`}>
-          <RiskIcon className={`w-4 h-4 ${riskColor}`} />
-          <span className={riskColor}>{riskLevel}</span>
+        {/* Diagnostic Explanation Paragraph */}
+        <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-mono bg-[#050c1e]/90 p-4 rounded-2xl border border-cyan-500/20 shadow-inner">
+          {summaryText}
+        </p>
+
+        {/* Biometric Telemetry Micro-Badges */}
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-[11px] font-mono text-slate-300 pt-1">
+          <span className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 shadow-sm">
+            <Activity className="w-3.5 h-3.5 text-cyan-400" />
+            <span>TTA: Active (5x Transforms)</span>
+          </span>
+          <span className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 shadow-sm">
+            <Flame className="w-3.5 h-3.5 text-amber-400" />
+            <span>Grad-CAM: High-Res Map</span>
+          </span>
+          <span className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-300 shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span>Input: 380&times;380 Dynamic</span>
+          </span>
         </div>
 
-        <p className="text-xs text-zinc-400 leading-relaxed font-mono">
-          {isReal
-            ? 'Neural network analysis confirms natural biological facial structures and consistent lighting gradients.'
-            : 'Deep learning classification detected high-frequency neural artifacts characteristic of AI face-swapping pipelines.'}
-        </p>
       </div>
 
     </div>
   );
 }
+

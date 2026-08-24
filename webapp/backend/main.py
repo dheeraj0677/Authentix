@@ -17,9 +17,14 @@ from sqlalchemy.orm import Session
 
 # Add project modules to Python path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-sys.path.append(os.path.dirname(__file__))
-sys.path.append(os.path.join(PROJECT_ROOT, "dl-model"))
-sys.path.append(os.path.join(PROJECT_ROOT, "blockchain"))
+if os.path.dirname(__file__) not in sys.path:
+    sys.path.insert(0, os.path.dirname(__file__))
+dl_model_dir = os.path.join(PROJECT_ROOT, "dl-model")
+if dl_model_dir not in sys.path:
+    sys.path.insert(0, dl_model_dir)
+blockchain_dir = os.path.join(PROJECT_ROOT, "blockchain")
+if blockchain_dir not in sys.path:
+    sys.path.insert(0, blockchain_dir)
 
 from predict import predict_image
 from video_predict import predict_video

@@ -1,77 +1,100 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, Upload, FileSearch, History, LayoutDashboard, Brain, Menu, X } from 'lucide-react';
+import {
+  Upload,
+  Search,
+  LayoutDashboard,
+  Brain,
+  History,
+  Menu,
+  X,
+  Radio,
+  Terminal
+} from 'lucide-react';
 import WalletConnect from './WalletConnect';
 
-export default function Navbar({ wallet, userRole = 'Public User', onConnect, onDisconnect, isAuthenticating }) {
+export default function Navbar({
+  wallet,
+  userRole = 'Public User',
+  onConnect,
+  onDisconnect,
+  isAuthenticating,
+  theme = 'dark',
+  onToggleTheme,
+}) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const allNavLinks = [
-    { path: '/', label: 'Detect & Register', icon: Upload, allowedRoles: ['Admin', 'Media Owner'] },
-    { path: '/dashboard', label: 'Blockchain Dashboard', icon: LayoutDashboard, allowedRoles: ['Admin', 'Researcher'] },
-    { path: '/analytics', label: 'AI Telemetry', icon: Brain, allowedRoles: ['Admin', 'Researcher'] },
-    { path: '/verify', label: 'Verify Authenticity', icon: FileSearch, allowedRoles: ['Admin', 'Researcher', 'Media Owner', 'Public User'] },
-    { path: '/history', label: 'Ledger History', icon: History, allowedRoles: ['Admin', 'Researcher', 'Media Owner'] },
+  const navLinks = [
+    { path: '/', label: 'Detect' },
+    { path: '/dashboard', label: 'Explorer' },
+    { path: '/analytics', label: 'Analytics' },
+    { path: '/verify', label: 'Verify' },
+    { path: '/history', label: 'Audit' },
   ];
-
-
-  const visibleNavLinks = allNavLinks.filter((link) => link.allowedRoles.includes(userRole));
 
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b border-zinc-900 bg-black/90 backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-xl border-b border-primary/20 shadow-[0_0_20px_rgba(0,219,233,0.1)] transition-all duration-300">
+      
+      {/* Top telemetry ticker */}
+      <div className="hidden sm:flex items-center justify-between px-panel-padding py-1 bg-surface-container-lowest border-b border-primary/10 text-[11px] font-code-md text-outline">
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-tertiary-fixed shadow-[0_0_8px_#6ffbbe] animate-pulse" />
+            <span className="text-outline">Engine:</span>
+            <span className="text-tertiary-fixed font-bold">EfficientNet-B4 (96.4% ACC)</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-primary-fixed shadow-[0_0_8px_#00f0ff] animate-pulse" />
+            <span className="text-outline">RPC Node:</span>
+            <span className="text-primary-fixed font-bold">127.0.0.1:8545 Active</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-secondary-fixed shadow-[0_0_8px_#e5b5ff] animate-pulse" />
+            <span className="text-outline">Ledger:</span>
+            <span className="text-secondary-fixed font-bold">Contract v1.0.0</span>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 text-primary-fixed/80">
+          <Terminal className="w-3.5 h-3.5 text-primary-fixed" />
+          <span className="font-label-caps tracking-widest text-[10px]">AUTHENTIX PROVENANCE PROTOCOL</span>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-panel-padding">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
+          {/* Brand Logo (Stitch Cyber HUD style) */}
           <Link to="/" className="flex items-center space-x-3 group" onClick={closeMobile}>
-            <img
-              src="/logo.png"
-              alt="Authentix Logo"
-              className="w-9 h-9 rounded-xl object-contain shadow-lg glow-emerald group-hover:scale-105 transition-transform duration-200"
-            />
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-extrabold bg-gradient-to-r from-emerald-400 via-teal-300 to-purple-400 bg-clip-text text-transparent tracking-tight">
-                  AUTHENTIX
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-zinc-950 text-purple-400 border border-purple-500/30 text-[10px] font-mono font-bold">
-                  {userRole}
-                </span>
-              </div>
-              <span className="block text-[10px] tracking-widest text-emerald-400/90 font-mono -mt-0.5">
-                DL + BLOCKCHAIN
-              </span>
-            </div>
+            <span className="font-display-lg text-headline-md tracking-tighter text-primary-fixed drop-shadow-[0_0_10px_rgba(0,240,255,0.6)] uppercase">
+              AUTHENTIX
+            </span>
           </Link>
 
-          {/* Desktop Nav Links (RBAC Filtered) */}
-          <nav className="hidden md:flex items-center space-x-1.5">
-            {visibleNavLinks.map((link) => {
-              const Icon = link.icon;
+          {/* Navigation Links */}
+          <nav className="hidden md:flex gap-6 items-center">
+            {navLinks.map((link) => {
               const isActive = location.pathname === link.path;
               return (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-mono font-semibold transition-all duration-200 ${
+                  className={`font-label-caps text-xs uppercase px-2 py-1 transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border border-emerald-500/40 shadow-lg glow-emerald'
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/80 border border-transparent'
+                      ? 'text-primary-fixed border-b-2 border-primary-fixed pb-1 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                      : 'text-on-surface-variant hover:text-primary-fixed-dim hover:bg-primary/10'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-zinc-400'}`} />
-                  <span>{link.label}</span>
+                  {link.label}
                 </Link>
               );
             })}
           </nav>
 
-
-          {/* Right: Wallet + Mobile Hamburger */}
-          <div className="flex items-center space-x-3">
+          {/* Web3 Wallet Connect */}
+          <div className="flex items-center gap-3">
             <WalletConnect
               wallet={wallet}
               onConnect={onConnect}
@@ -79,46 +102,41 @@ export default function Navbar({ wallet, userRole = 'Public User', onConnect, on
               isAuthenticating={isAuthenticating}
             />
 
-            {/* Mobile hamburger button */}
+            {/* Mobile menu toggle */}
             <button
-              className="md:hidden p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900/80 transition-colors"
+              className="md:hidden p-2 text-primary-fixed hover:bg-primary/10 transition-colors"
               onClick={() => setMobileOpen((prev) => !prev)}
               aria-label="Toggle navigation menu"
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
+
         </div>
       </div>
 
-      {/* Mobile Dropdown Menu (RBAC Filtered) */}
+      {/* Mobile Drawer */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-zinc-900 animate-slideDown">
-          <nav className="flex flex-col px-4 py-3 space-y-1 glass-panel bg-black/95">
-
-            {visibleNavLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = location.pathname === link.path;
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={closeMobile}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                      : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{link.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+        <div className="md:hidden border-t border-primary/20 bg-surface-container-lowest/98 px-panel-padding py-4 space-y-2 animate-slideDown">
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.path;
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                onClick={closeMobile}
+                className={`block px-4 py-2 text-xs font-label-caps uppercase transition-colors ${
+                  isActive
+                    ? 'bg-primary/10 text-primary-fixed border-l-2 border-primary-fixed'
+                    : 'text-on-surface-variant hover:text-primary-fixed'
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
       )}
-
     </header>
   );
 }

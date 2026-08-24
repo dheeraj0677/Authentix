@@ -14,22 +14,22 @@ $blockchainDir = Join-Path $rootDir "blockchain"
 
 # 1. Start Hardhat Local Blockchain Node
 Write-Host "[1/3] Starting Hardhat Ethereum Node on http://127.0.0.1:8545..." -ForegroundColor Yellow
-$nodeCmd = "title Authentix - Hardhat Ethereum Node (8545) && cd /d `"$blockchainDir`" && echo ⛓️ Starting Hardhat Node... && npx hardhat node"
-Start-Process cmd.exe -ArgumentList "/k", $nodeCmd
+$nodeCmd = "/k title Authentix - Hardhat Ethereum Node (8545) & cd /d `"$blockchainDir`" & echo [*] Starting Hardhat Node... & npx hardhat node"
+Start-Process cmd.exe -ArgumentList $nodeCmd
 
 Start-Sleep -Seconds 3
 
 # 2. Start FastAPI Backend Server
 Write-Host "[2/3] Starting FastAPI Backend on http://127.0.0.1:8000..." -ForegroundColor Yellow
-$backendCmd = "title Authentix - FastAPI Backend (8000) && cd /d `"$rootDir`" && set RPC_URL=http://127.0.0.1:8545 && echo 🔧 Starting FastAPI Backend... && `"$venvPython`" -m uvicorn webapp.backend.main:app --host 127.0.0.1 --port 8000 --reload"
-Start-Process cmd.exe -ArgumentList "/k", $backendCmd
+$backendCmd = "/k title Authentix - FastAPI Backend (8000) & cd /d `"$rootDir`" & set RPC_URL=http://127.0.0.1:8545 & echo [*] Starting FastAPI Backend... & `"$venvPython`" -m uvicorn webapp.backend.main:app --host 127.0.0.1 --port 8000 --reload"
+Start-Process cmd.exe -ArgumentList $backendCmd
 
 Start-Sleep -Seconds 2
 
 # 3. Start Vite React Frontend Dev Server
 Write-Host "[3/3] Starting React Frontend on http://localhost:5173..." -ForegroundColor Yellow
-$frontendCmd = "title Authentix - React Frontend (5173) && cd /d `"$frontendDir`" && echo 🌐 Starting Vite Frontend... && npm run dev"
-Start-Process cmd.exe -ArgumentList "/k", $frontendCmd
+$frontendCmd = "/k title Authentix - React Frontend (5173) & cd /d `"$frontendDir`" & echo [*] Starting Vite Frontend... & npm run dev"
+Start-Process cmd.exe -ArgumentList $frontendCmd
 
 Write-Host ""
 Write-Host "======================================================" -ForegroundColor Cyan
@@ -42,3 +42,4 @@ Write-Host "  * Ethereum RPC:           http://127.0.0.1:8545" -ForegroundColor 
 Write-Host ""
 Write-Host "To stop all services, run: .\stop.ps1" -ForegroundColor Gray
 Write-Host ""
+

@@ -1,26 +1,43 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { fetchHistory, fetchVerificationHistory } from '../utils/api';
-import { History, ExternalLink, ShieldCheck, ShieldAlert, Clock, RefreshCw, Wallet, ChevronLeft, ChevronRight, Activity } from 'lucide-react';
+import { fetchHistory, fetchVerificationHistory, getPdfReportUrl, getGradCamUrl } from '../utils/api';
+import {
+  RefreshCw,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+  ShieldAlert,
+  Terminal,
+  FileText,
+  QrCode,
+  ExternalLink,
+  Copy,
+  Check,
+  Database,
+  ChevronLeft,
+  ChevronRight,
+  Filter
+} from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
 export default function HistoryPage({ wallet }) {
   const [historyItems, setHistoryItems] = useState([]);
-  const [viewTab, setViewTab] = useState('registered'); // 'registered' or 'attempts'
-  const [filterMode, setFilterMode] = useState('connected'); // 'connected' or 'all'
+  const [viewTab, setViewTab] = useState('my'); // 'my' vs 'global'
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [copiedHash, setCopiedHash] = useState(null);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      if (viewTab === 'attempts') {
-        const queryParam = filterMode === 'connected' && wallet ? wallet : 'all';
-        const items = await fetchVerificationHistory(queryParam);
+      if (viewTab === 'my') {
+        const targetWallet = wallet || 'all';
+        const items = await fetchHistory(targetWallet);
         setHistoryItems(items);
       } else {
-        const targetWallet = filterMode === 'connected' ? wallet : 'all';
-        const items = await fetchHistory(targetWallet);
+        const items = await fetchVerificationHistory('all');
         setHistoryItems(items);
       }
       setCurrentPage(1);
@@ -33,335 +50,281 @@ export default function HistoryPage({ wallet }) {
 
   useEffect(() => {
     loadData();
-  }, [wallet, filterMode, viewTab]);
+  }, [wallet, viewTab]);
+
+  // Filter items by search query
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return historyItems;
+    const q = searchQuery.toLowerCase();
+    return historyItems.filter((item) => {
+      const matchHash = item.file_hash?.toLowerCase().includes(q);
+      const matchFile = item.filename?.toLowerCase().includes(q);
+      const matchPred = item.prediction?.toLowerCase().includes(q);
+      return matchHash || matchFile || matchPred;
+    });
+  }, [historyItems, searchQuery]);
 
   // Paginate
-  const totalPages = Math.max(1, Math.ceil(historyItems.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const paginatedItems = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
-    return historyItems.slice(start, start + PAGE_SIZE);
-  }, [historyItems, currentPage]);
+    return filteredItems.slice(start, start + PAGE_SIZE);
+  }, [filteredItems, currentPage]);
 
-  // Empty-state: wallet not connected and in "My Wallet" mode
-  if (filterMode === 'connected' && !wallet) {
-    return (
-      <div className="max-w-6xl mx-auto space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white flex items-center space-x-3">
-              <History className="w-8 h-8 text-cyan-400" />
-              <span>Blockchain Audit Ledger</span>
-            </h1>
-            <p className="text-gray-400 text-xs mt-1">
-              History of deepfake predictions &amp; registered on-chain file hashes
-            </p>
-          </div>
-          <div className="bg-gray-900 p-1 rounded-xl border border-gray-800 flex text-xs">
-            <button
-              onClick={() => setFilterMode('connected')}
-              className="px-3 py-1.5 rounded-lg transition-all bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-            >
-              My Wallet
-            </button>
-            <button
-              onClick={() => setFilterMode('all')}
-              className="px-3 py-1.5 rounded-lg transition-all text-gray-400 hover:text-gray-200"
-            >
-              All Records
-            </button>
-          </div>
-        </div>
-
-        {/* Wallet not connected empty state */}
-        <div className="glass-card rounded-2xl p-12 border border-gray-800 flex flex-col items-center justify-center space-y-4 text-center animate-fadeIn">
-          <div className="p-4 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-            <Wallet className="w-10 h-10 text-cyan-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-200">Connect Your MetaMask Wallet</h3>
-          <p className="text-gray-400 text-sm max-w-sm">
-            Connect your MetaMask wallet to view your personal verification history and registered on-chain file records.
-          </p>
-          <button
-            onClick={() => setFilterMode('all')}
-            className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs border border-gray-700 transition-colors"
-          >
-            View All Records Instead
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleCopy = (hash) => {
+    if (!hash) return;
+    navigator.clipboard.writeText(hash);
+    setCopiedHash(hash);
+    setTimeout(() => setCopiedHash(null), 2000);
+  };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center space-x-3">
-            <History className="w-8 h-8 text-cyan-400" />
-            <span>Blockchain Audit Ledger</span>
+    <div className="max-w-[1600px] mx-auto space-y-6 animate-fadeIn pb-16 grid-bg">
+      
+      {/* Page Header (Stitch Style) */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-2">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-primary-fixed">
+            <Terminal className="w-4 h-4 text-primary-fixed" />
+            <span className="font-code-md text-xs uppercase tracking-widest text-primary-fixed/70">
+              System // Registry_Access
+            </span>
+          </div>
+          <h1 className="font-display-lg text-3xl sm:text-4xl text-primary-fixed tracking-tight uppercase drop-shadow-[0_0_15px_rgba(125,244,255,0.4)]">
+            Audit History
           </h1>
-          <p className="text-gray-400 text-xs mt-1">
-            History of deepfake predictions &amp; registered on-chain file hashes
-            {historyItems.length > 0 && (
-              <span className="ml-2 text-cyan-400 font-mono">{historyItems.length} record{historyItems.length !== 1 ? 's' : ''}</span>
-            )}
+          <p className="font-body-lg text-xs sm:text-sm text-on-surface-variant max-w-2xl">
+            Immutable ledger of analyzed media assets and their cryptographic provenance proofs.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          {/* Tab Selector: Registered vs Verification Attempts */}
-          <div className="bg-gray-900 p-1 rounded-xl border border-gray-800 flex text-xs">
-            <button
-              onClick={() => setViewTab('registered')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 ${
-                viewTab === 'registered'
-                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <History className="w-3.5 h-3.5" />
-              <span>Registered Files</span>
-            </button>
-            <button
-              onClick={() => setViewTab('attempts')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 ${
-                viewTab === 'attempts'
-                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Verification Attempts</span>
-            </button>
-          </div>
+        <button
+          onClick={loadData}
+          className="glow-btn px-4 py-2 font-label-caps text-xs uppercase flex items-center gap-2"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
+      </div>
 
-          <div className="bg-gray-900 p-1 rounded-xl border border-gray-800 flex text-xs">
-            <button
-              onClick={() => setFilterMode('connected')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                filterMode === 'connected'
-                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              My Wallet
-            </button>
-            <button
-              onClick={() => setFilterMode('all')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${
-                filterMode === 'all'
-                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                  : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              All Records
-            </button>
-          </div>
+      {/* Controls: Tabs & Search Bar */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full p-4 bg-surface-container-low/80 backdrop-blur-md border border-primary/20 relative">
+        <div className="hud-corner-tl" />
+        <div className="hud-corner-tr" />
+        <div className="hud-corner-bl" />
+        <div className="hud-corner-br" />
 
+        {/* Tabs */}
+        <div className="flex gap-2">
           <button
-            onClick={loadData}
-            className="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-            title="Refresh History"
+            onClick={() => setViewTab('my')}
+            className={`font-label-caps text-xs uppercase px-4 py-2 transition-all ${
+              viewTab === 'my'
+                ? 'bg-primary/10 border border-primary-fixed text-primary-fixed shadow-[0_0_10px_rgba(0,240,255,0.2)]'
+                : 'border border-outline-variant text-outline hover:border-primary/50 hover:text-primary-fixed'
+            }`}
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            My Registered Media
+          </button>
+          <button
+            onClick={() => setViewTab('global')}
+            className={`font-label-caps text-xs uppercase px-4 py-2 transition-all ${
+              viewTab === 'global'
+                ? 'bg-primary/10 border border-primary-fixed text-primary-fixed shadow-[0_0_10px_rgba(0,240,255,0.2)]'
+                : 'border border-outline-variant text-outline hover:border-primary/50 hover:text-primary-fixed'
+            }`}
+          >
+            Global Audit Log
+          </button>
+        </div>
+
+        {/* Search & Filter */}
+        <div className="flex gap-2 w-full md:w-auto">
+          <div className="relative w-full md:w-72">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="SEARCH HASH OR FILENAME..."
+              className="w-full bg-surface-dim border-0 border-b border-outline-variant focus:border-primary-fixed focus:ring-0 text-on-surface font-code-md text-xs pl-9 pr-3 py-2 placeholder-outline/50 outline-none"
+            />
+          </div>
+          <button
+            onClick={() => setSearchQuery('')}
+            className="border border-outline-variant p-2 text-outline hover:text-primary-fixed hover:border-primary-fixed transition-colors"
+            title="Clear Filter"
+          >
+            <Filter className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="glass-card rounded-2xl overflow-hidden border border-gray-800">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-gray-900/80 text-gray-400 border-b border-gray-800 uppercase tracking-wider">
-              {viewTab === 'attempts' ? (
-                <tr>
-                  <th className="px-6 py-4">Verification Time</th>
-                  <th className="px-6 py-4">Result</th>
-                  <th className="px-6 py-4">SHA-256 Hash</th>
-                  <th className="px-6 py-4">DL Verdict</th>
-                  <th className="px-6 py-4">Confidence</th>
-                  <th className="px-6 py-4">Model Version</th>
-                  <th className="px-6 py-4">Wallet</th>
-                  <th className="px-6 py-4">IP Address</th>
-                </tr>
-              ) : (
-                <tr>
-                  <th className="px-6 py-4">Filename</th>
-                  <th className="px-6 py-4">DL Verdict</th>
-                  <th className="px-6 py-4">Confidence</th>
-                  <th className="px-6 py-4">SHA-256 Hash</th>
-                  <th className="px-6 py-4">Blockchain Status</th>
-                  <th className="px-6 py-4">Timestamp</th>
-                </tr>
-              )}
-            </thead>
-            <tbody className="divide-y divide-gray-800/50 text-gray-300">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={viewTab === 'attempts' ? 8 : 6} className="px-6 py-12 text-center text-gray-500">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-cyan-400" />
-                    Loading records...
-                  </td>
-                </tr>
-              ) : paginatedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={viewTab === 'attempts' ? 8 : 6} className="px-6 py-12 text-center text-gray-500">
-                    {filterMode === 'connected'
-                      ? 'No records found for your wallet address.'
-                      : 'No records found.'}
-                  </td>
-                </tr>
-              ) : (
-                paginatedItems.map((item) => {
-                  if (viewTab === 'attempts') {
-                    const isAuth = item.verification_result === 'Authentic';
-                    const isMod = item.verification_result === 'Modified';
-                    return (
-                      <tr key={item.id} className="hover:bg-gray-800/30 transition-colors">
-                        <td className="px-6 py-4 text-gray-300">
-                          <div className="flex items-center space-x-1">
-                            <Clock className="w-3 h-3 text-purple-400" />
-                            <span>{new Date(item.verification_time).toLocaleString()}</span>
-                          </div>
-                        </td>
+      {/* Registry Data Grid (Table Alternative) */}
+      <div className="w-full relative border border-primary/20 bg-surface-container-lowest/50 backdrop-blur-xl">
+        <div className="hud-corner-tl" />
+        <div className="hud-corner-tr" />
+        <div className="hud-corner-bl" />
+        <div className="hud-corner-br" />
 
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                              isAuth
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : isMod
-                                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                : 'bg-gray-800 text-gray-400 border border-gray-700'
-                            }`}
-                          >
-                            {isAuth ? <ShieldCheck className="w-3 h-3" /> : <ShieldAlert className="w-3 h-3" />}
-                            <span>{item.verification_result}</span>
-                          </span>
-                        </td>
+        {/* Scanning Line Effect */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="hud-scanline w-full h-[15%] absolute top-0" />
+        </div>
 
-                        <td className="px-6 py-4 text-gray-400 font-mono text-[11px]" title={item.file_hash}>
-                          {item.file_hash.slice(0, 8)}...{item.file_hash.slice(-6)}
-                        </td>
+        {/* Header Row */}
+        <div className="grid grid-cols-12 gap-4 p-4 border-b border-primary/20 font-label-caps text-[11px] text-secondary-fixed uppercase bg-surface-container/50 tracking-wider">
+          <div className="col-span-1">Preview</div>
+          <div className="col-span-3">Asset Details</div>
+          <div className="col-span-3">Cryptographic Hash</div>
+          <div className="col-span-2">Analysis Status</div>
+          <div className="col-span-1">Ledger</div>
+          <div className="col-span-2 text-right">Actions</div>
+        </div>
 
-                        <td className="px-6 py-4 text-gray-300 font-semibold">
-                          {item.prediction}
-                        </td>
+        {/* Data Rows Container */}
+        <div className="flex flex-col divide-y divide-primary/10">
+          {paginatedItems.length > 0 ? (
+            paginatedItems.map((item, idx) => {
+              const isDeepfake = item.prediction?.toLowerCase() === 'fake' || item.prediction?.toLowerCase() === 'deepfake';
+              const fileHash = item.file_hash || `0x${idx}a8f...92c`;
+              const filename = item.filename || `payload_capture_${idx + 1}.jpg`;
+              const timestampStr = item.timestamp ? new Date(item.timestamp).toISOString() : new Date().toISOString();
 
-                        <td className="px-6 py-4 font-bold text-cyan-400">
-                          {item.confidence_score}%
-                        </td>
-
-                        <td className="px-6 py-4 text-gray-400 text-[11px]">
-                          {item.model_version}
-                        </td>
-
-                        <td className="px-6 py-4 text-gray-400 text-[11px]">
-                          {item.wallet_address ? `${item.wallet_address.slice(0, 6)}...` : 'Anonymous'}
-                        </td>
-
-                        <td className="px-6 py-4 text-gray-500 text-[11px]">
-                          {item.ip_address || '127.0.0.1'}
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const isReal = item.prediction === 'REAL';
-                  return (
-                    <tr key={item.id} className="hover:bg-gray-800/30 transition-colors">
-                      <td className="px-6 py-4 font-sans font-medium text-gray-200 max-w-[150px] truncate" title={item.filename}>
-                        {item.filename}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] ${
-                            isReal
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                          }`}
-                        >
-                          {isReal ? <ShieldCheck className="w-3 h-3" /> : <ShieldAlert className="w-3 h-3" />}
-                          <span>{item.prediction}</span>
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 font-bold">
-                        {item.confidence}%
-                      </td>
-
-                      <td className="px-6 py-4 text-gray-400 font-mono text-[11px]">
-                        {item.file_hash.slice(0, 10)}...{item.file_hash.slice(-8)}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        {item.is_on_chain ? (
-                          <span className="inline-flex items-center space-x-1 text-cyan-400">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                            <span>On-Chain</span>
-                            {item.tx_hash && (
-                              <a
-                                href={`https://sepolia.etherscan.io/tx/${item.tx_hash}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="ml-1 text-cyan-500 hover:text-cyan-300"
-                                title={`View tx: ${item.tx_hash}`}
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">Cached Only</span>
-                        )}
-                      </td>
-
-                      <td className="px-6 py-4 text-gray-400 text-[11px]">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3 text-gray-500" />
-                          <span>{new Date(item.timestamp).toLocaleString()}</span>
+              return (
+                <div
+                  key={idx}
+                  className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-primary/5 transition-colors group"
+                >
+                  {/* Thumbnail Preview */}
+                  <div className="col-span-1">
+                    <div className="w-12 h-12 border border-primary/30 relative bg-surface-container overflow-hidden">
+                      {item.gradcam_url ? (
+                        <img
+                          src={getGradCamUrl(item.gradcam_url)}
+                          alt="Thumbnail"
+                          className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-black/40 text-primary-fixed font-code-md text-[10px]">
+                          PAYLOAD
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                      )}
+                      <div className="absolute inset-0 bg-primary/20 mix-blend-overlay" />
+                    </div>
+                  </div>
+
+                  {/* Asset Details */}
+                  <div className="col-span-3 flex flex-col justify-center font-code-md text-xs">
+                    <span className="text-on-surface truncate font-bold">{filename}</span>
+                    <span className="font-label-caps text-[10px] text-outline mt-0.5">{timestampStr}</span>
+                  </div>
+
+                  {/* Cryptographic Hash */}
+                  <div className="col-span-3 flex items-center gap-2">
+                    <div
+                      className="font-code-md text-[11px] text-tertiary-fixed bg-tertiary-fixed/10 px-2 py-1 border border-tertiary-fixed/30 truncate font-mono flex-grow"
+                      title={fileHash}
+                    >
+                      {fileHash.slice(0, 10)}...{fileHash.slice(-8)}
+                    </div>
+                    <button
+                      onClick={() => handleCopy(fileHash)}
+                      className="text-outline hover:text-primary-fixed transition-colors"
+                      title="Copy Hash"
+                    >
+                      {copiedHash === fileHash ? <Check className="w-3.5 h-3.5 text-tertiary-fixed" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+
+                  {/* Analysis Status */}
+                  <div className="col-span-2 flex items-center">
+                    <span className={`font-label-caps text-[10px] px-2.5 py-1 uppercase border tracking-wider ${
+                      isDeepfake
+                        ? 'bg-error-container/40 text-error border-error/50'
+                        : 'bg-tertiary-container/30 text-tertiary-fixed border-tertiary-fixed/50'
+                    }`}>
+                      {isDeepfake ? 'Deepfake Detected' : 'Authentic Media'}
+                    </span>
+                  </div>
+
+                  {/* Ledger Status */}
+                  <div className="col-span-1 flex items-center">
+                    <CheckCircle2
+                      className={`w-4 h-4 ${item.is_on_chain !== false ? 'text-tertiary-fixed' : 'text-outline'}`}
+                      title={item.is_on_chain !== false ? 'Anchored to Ethereum' : 'Off-Chain Record'}
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="col-span-2 flex items-center justify-end gap-2 text-outline-variant font-code-md text-xs">
+                    {item.ipfs_cid && (
+                      <a
+                        href={`https://ipfs.io/ipfs/${item.ipfs_cid}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:text-primary-fixed transition-colors p-1"
+                        title="View on IPFS"
+                      >
+                        <Database className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    <a
+                      href={getPdfReportUrl(fileHash)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-primary-fixed transition-colors p-1"
+                      title="Download PDF Report"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href={`/dashboard`}
+                      className="border border-primary/30 px-2 py-1 text-[10px] font-label-caps text-primary-fixed hover:bg-primary/10 ml-1 transition-colors"
+                    >
+                      PROVENANCE
+                    </a>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-8 text-center font-code-md text-xs text-outline">
+              {isLoading ? 'Fetching immutable audit ledger...' : 'No audit records match your query.'}
+            </div>
+          )}
         </div>
-      </div>
 
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-xs text-gray-400 font-mono">
-          <span>
-            Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, historyItems.length)} of {historyItems.length}
-          </span>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="px-3 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              {currentPage} / {totalPages}
+        {/* Pagination Bar */}
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center p-4 border-t border-primary/20 font-label-caps text-xs">
+            <span className="text-outline">
+              PAGE {currentPage} OF {totalPages} ({filteredItems.length} TOTAL RECORDS)
             </span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="glow-btn px-3 py-1 flex items-center gap-1 disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                PREV
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="glow-btn px-3 py-1 flex items-center gap-1 disabled:opacity-30 disabled:pointer-events-none"
+              >
+                NEXT
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
     </div>
   );

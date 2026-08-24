@@ -1,0 +1,7 @@
+{
+  "extraPaths": [
+    "dl-model",
+    "blockchain",
+    "webapp/backend"
+  ]
+}
