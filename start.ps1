@@ -9,11 +9,11 @@ Write-Host ""
 
 $rootDir = $PSScriptRoot
 $venvPython = "python"
-$venvPath = Join-Path $rootDir "webapp\backend\venv\Scripts\python.exe"
+$venvPath = Join-Path $rootDir "backend\venv\Scripts\python.exe"
 if (Test-Path $venvPath) {
     $venvPython = $venvPath
 }
-$frontendDir = Join-Path $rootDir "webapp\frontend"
+$frontendDir = Join-Path $rootDir "frontend"
 $blockchainDir = Join-Path $rootDir "blockchain"
 
 # 1. Start Hardhat Local Blockchain Node
@@ -25,7 +25,7 @@ Start-Sleep -Seconds 3
 
 # 2. Start FastAPI Backend Server
 Write-Host "[2/3] Starting FastAPI Backend on http://127.0.0.1:8000..." -ForegroundColor Yellow
-$backendCmd = "/k title Authentix - FastAPI Backend (8000) & cd /d `"$rootDir`" & set RPC_URL=http://127.0.0.1:8545 & echo [*] Starting FastAPI Backend... & `"$venvPython`" -m uvicorn webapp.backend.main:app --host 127.0.0.1 --port 8000 --reload"
+$backendCmd = "/k title Authentix - FastAPI Backend (8000) & cd /d `"$rootDir`" & set RPC_URL=http://127.0.0.1:8545 & echo [*] Starting FastAPI Backend... & `"$venvPython`" -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload"
 Start-Process cmd.exe -ArgumentList $backendCmd
 
 Start-Sleep -Seconds 2

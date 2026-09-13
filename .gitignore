@@ -20,8 +20,8 @@ dl-model/tf_wheel/
 dl-model/saved_model/
 dl-model/plots/
 dl-model/outputs/
-webapp/backend/uploads/
-webapp/backend/gradcam_outputs/
+backend/uploads/
+backend/gradcam_outputs/
 
 # Hardhat / Smart Contracts
 blockchain/artifacts/
