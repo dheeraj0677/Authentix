@@ -32,3 +32,17 @@ blockchain/deployed_address.json
 # Environment files
 .env
 .env.local
+
+# IDE & Editor files
+.vscode/
+.idea/
+
+# Presentation & non-code review decks
+*.pptx
+*.ppt
+*.key
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
