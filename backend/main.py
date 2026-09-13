@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 
 # Add project modules to Python path
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if os.path.dirname(__file__) not in sys.path:
     sys.path.insert(0, os.path.dirname(__file__))
 dl_model_dir = os.path.join(PROJECT_ROOT, "dl-model")

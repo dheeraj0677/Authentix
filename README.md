@@ -48,32 +48,34 @@ A full-stack media authenticity platform combining a **deep learning deepfake de
 ```
 Authentix/
 │
+├── backend/                    # FastAPI Server
+│   ├── main.py                 #   API endpoints & DL inference
+│   ├── pdf_generator.py        #   Certificate engine (ReportLab)
+│   ├── auth_manager.py         #   Wallet signature authentication
+│   ├── ipfs_client.py          #   IPFS upload handler
+│   └── schemas.py              #   Pydantic data models
+│
+├── frontend/                   # React Application (React 18 + Vite)
+│   └── src/
+│       ├── pages/              #   Upload, Verify, History, Analytics
+│       └── components/         #   DropZone, GradCam, ResultCard, etc.
+│
+├── blockchain/                 # Smart Contract Module
+│   ├── contracts/              #   Solidity contracts (AuthenticityRegistry)
+│   ├── scripts/                #   Deployment scripts
+│   ├── test/                   #   Hardhat unit tests
+│   └── web3_client.py          #   Python ↔ Ethereum Web3 bridge
+│
 ├── dl-model/                   # Deep Learning Module
 │   ├── model.py                #   EfficientNetB0 CNN builder
 │   ├── train.py                #   Two-phase transfer learning
 │   ├── predict.py              #   Image inference CLI
 │   ├── video_predict.py        #   Video frame analysis & timeline
 │   ├── gradcam.py              #   Grad-CAM heatmap generator
-│   ├── evaluate.py             #   Metrics & confusion matrix
-│   └── stress_test.py          #   Noise/compression robustness tests
+│   └── evaluate.py             #   Metrics & confusion matrix
 │
-├── blockchain/                 # Smart Contract Module
-│   ├── contracts/              #   Solidity contracts (Registry, Controller)
-│   ├── scripts/                #   Deployment scripts
-│   ├── test/                   #   Hardhat unit tests
-│   └── web3_client.py          #   Python ↔ Ethereum Web3 bridge
-│
-├── webapp/
-│   ├── backend/                # FastAPI Server
-│   │   ├── main.py             #   API endpoints & DL inference
-│   │   ├── pdf_generator.py    #   Certificate engine (ReportLab)
-│   │   ├── auth_manager.py     #   JWT authentication
-│   │   ├── ipfs_client.py      #   IPFS upload handler
-│   │   └── schemas.py          #   Pydantic data models
-│   └── frontend/               # React Application
-│       └── src/
-│           ├── pages/          #   Upload, Verify, History, Analytics
-│           └── components/     #   DropZone, GradCam, ResultCard, etc.
+├── docs/                       # Project Documentation
+│   └── PROJECT_REPORT.md       #   Comprehensive technical report
 │
 ├── setup.ps1                   # One-click dependency installer
 ├── start.ps1                   # One-click service launcher (Blockchain + Backend + Frontend)
@@ -138,7 +140,7 @@ npm run deploy:sepolia
 <summary><b>Step 2 — Backend API</b></summary>
 
 ```bash
-cd webapp/backend
+cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
@@ -148,7 +150,7 @@ uvicorn main:app --reload --port 8000
 <summary><b>Step 3 — Frontend</b></summary>
 
 ```bash
-cd webapp/frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -277,16 +279,17 @@ Authentix/
 │   ├── web3_client.py           # Python ↔ Web3 Bridge
 │   └── hardhat.config.js
 │
-├── webapp/                      # Full-Stack Web Application
-│   ├── backend/                 # FastAPI & Node.js server
-│   │   ├── main.py              # FastAPI endpoints
-│   │   ├── server.js            # Express server
-│   │   ├── pdf_generator.py     # PDF Certificate Engine
-│   │   ├── auth_manager.py      # Auth & JWT management
-│   │   └── ipfs_client.py       # IPFS client handler
-│   └── frontend/                # React 18 Client Application
-│       ├── src/components/      # UI Components (DropZone, GradCam, Timeline, etc.)
-│       └── src/pages/           # App Pages (Upload, Verify, History, Analytics)
+├── backend/                     # FastAPI Core Server
+│   ├── main.py                  # FastAPI endpoints & inference
+│   ├── pdf_generator.py         # PDF Certificate Engine
+│   ├── auth_manager.py          # Auth & Web3 signature validation
+│   └── ipfs_client.py           # IPFS client handler
+├── frontend/                    # React 18 Client Application
+│   ├── src/components/          # UI Components (DropZone, GradCam, Timeline, etc.)
+│   └── src/pages/               # App Pages (Upload, Verify, History, Analytics)
+│
+├── docs/                        # Technical Documentation & Reports
+│   └── PROJECT_REPORT.md        # Comprehensive Architecture & Evaluation Report
 │
 ├── setup.ps1                    # First-time setup script
 ├── start.ps1                    # Master startup script
@@ -319,30 +322,24 @@ Authentix/
 ```bash
 cd blockchain
 npm install
-npm run node
+npx hardhat node
 ```
 *In a second terminal, deploy the smart contract:*
 ```bash
 cd blockchain
-npm run deploy:local
+npx hardhat run scripts/deploy.js --network localhost
 ```
 
 #### 2. Backend Server
 ```bash
-cd webapp/backend
+cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
-```
-*Alternatively, start Node Express backend:*
-```bash
-cd webapp/backend
-npm install
-node server.js
 ```
 
 #### 3. Frontend Application
 ```bash
-cd webapp/frontend
+cd frontend
 npm install
 npm run dev
 ```

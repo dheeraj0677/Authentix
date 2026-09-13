@@ -151,7 +151,7 @@ Upload File → SHA-256 Hash Computed
 
 ---
 
-## Web Application (`webapp/`)
+## Web Application (`backend/` & `frontend/`)
 
 ### Backend API Endpoints (FastAPI, Port 8000)
 
@@ -187,10 +187,10 @@ Upload File → SHA-256 Hash Computed
 cd blockchain && cmd /c "npx hardhat node"
 
 # Terminal 2 — Backend (port 8000):
-python -m uvicorn webapp.backend.main:app --host 127.0.0.1 --port 8000
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 # Terminal 3 — Frontend (port 5173):
-cd webapp\frontend && cmd /c "npm run dev"
+cd frontend && cmd /c "npm run dev"
 ```
 
 Visit **http://localhost:5173**
