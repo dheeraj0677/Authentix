@@ -48,14 +48,14 @@ try {
 
 Write-Host ""
 Write-Host "--- 2. Setting up Python Virtual Environment and Backend Dependencies ---" -ForegroundColor Yellow
-$backendDir = Join-Path $rootDir "webapp/backend"
+$backendDir = Join-Path $rootDir "backend"
 $venvDir = Join-Path $backendDir "venv"
 $venvScripts = Join-Path $venvDir "Scripts"
 $venvPython = Join-Path $venvScripts "python.exe"
 $venvPip = Join-Path $venvScripts "pip.exe"
 
 if (-not (Test-Path $venvPython)) {
-    Write-Host "    Creating Python virtual environment in webapp/backend/venv..." -ForegroundColor Gray
+    Write-Host "    Creating Python virtual environment in backend/venv..." -ForegroundColor Gray
     python -m venv $venvDir
 }
 
@@ -65,7 +65,7 @@ try {
     $beEnvEx = Join-Path $backendDir ".env.example"
     if (-not (Test-Path $beEnv) -and (Test-Path $beEnvEx)) {
         Copy-Item $beEnvEx $beEnv
-        Write-Host "    Created webapp/backend/.env from .env.example" -ForegroundColor Gray
+        Write-Host "    Created backend/.env from .env.example" -ForegroundColor Gray
     }
     Write-Host "    Installing requirements.txt into venv..." -ForegroundColor Gray
     & $venvPip install --upgrade pip
@@ -77,17 +77,17 @@ try {
 
 Write-Host ""
 Write-Host "--- 3. Setting up Frontend (React + Vite) Dependencies ---" -ForegroundColor Yellow
-$frontendDir = Join-Path $rootDir "webapp/frontend"
+$frontendDir = Join-Path $rootDir "frontend"
 Push-Location $frontendDir
 try {
     $feEnv = Join-Path $frontendDir ".env"
     $feEnvEx = Join-Path $frontendDir ".env.example"
     if (-not (Test-Path $feEnv) -and (Test-Path $feEnvEx)) {
         Copy-Item $feEnvEx $feEnv
-        Write-Host "    Created webapp/frontend/.env from .env.example" -ForegroundColor Gray
+        Write-Host "    Created frontend/.env from .env.example" -ForegroundColor Gray
     }
-    Write-Host "    Installing NPM packages in webapp/frontend/..." -ForegroundColor Gray
-    npm install
+    Write-Host "    Installing NPM packages in frontend/..." -ForegroundColor Gray
+    npm.cmd install
     Write-Host "(OK) Frontend dependencies installed successfully." -ForegroundColor Green
 } finally {
     Pop-Location

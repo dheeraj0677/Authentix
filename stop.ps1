@@ -42,7 +42,7 @@ foreach ($item in $ports) {
 
 Write-Host ""
 if ($killedCount -gt 0) {
-    Write-Host "[✓] All Authentix services stopped successfully." -ForegroundColor Green
+    Write-Host "[+] All Authentix services stopped successfully." -ForegroundColor Green
 } else {
     Write-Host "[i] No running Authentix services were detected." -ForegroundColor Cyan
 }

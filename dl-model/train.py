@@ -6,20 +6,77 @@ import tensorflow as tf
 from data import load_datasets
 from model import build_model, unfreeze_for_finetuning
 
+def plot_training_history(history_phase1, history_phase2=None, save_dir="plots"):
+    """
+    Saves visual training history plots (Loss, Accuracy, AUC, Precision, Recall)
+    for Phase 1 and Phase 2.
+    """
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("[WARN] matplotlib not installed; skipping plot generation.")
+        return
+
+    os.makedirs(save_dir, exist_ok=True)
+    p1_epochs = len(history_phase1.epoch)
+    tracked = ["loss", "accuracy", "auc", "precision", "recall"]
+
+    for metric in tracked:
+        if metric in history_phase1.history:
+            plt.figure(figsize=(9, 5))
+            train_vals = list(history_phase1.history.get(metric, []))
+            val_vals = list(history_phase1.history.get(f"val_{metric}", []))
+
+            if history_phase2 is not None:
+                train_vals += list(history_phase2.history.get(metric, []))
+                val_vals += list(history_phase2.history.get(f"val_{metric}", []))
+
+            epochs_range = range(1, len(train_vals) + 1)
+            plt.plot(epochs_range, train_vals, label=f"Train {metric.upper()}", color="#1f77b4", lw=2)
+            plt.plot(epochs_range, val_vals, label=f"Val {metric.upper()}", color="#ff7f0e", lw=2, linestyle="--")
+
+            if history_phase2 is not None and p1_epochs < len(train_vals):
+                plt.axvline(x=p1_epochs, color="#2ca02c", linestyle=":", label="Phase 2 Fine-Tune Start", lw=1.5)
+
+            plt.title(f"Authentix Training — {metric.upper()} Curve", fontsize=14, fontweight="bold")
+            plt.xlabel("Epoch", fontsize=12)
+            plt.ylabel(metric.upper(), fontsize=12)
+            plt.grid(True, linestyle="--", alpha=0.6)
+            plt.legend(loc="best")
+            plt.tight_layout()
+
+            plot_path = os.path.join(save_dir, f"training_{metric}.png")
+            plt.savefig(plot_path, dpi=150)
+            plt.close()
+            print(f"[INFO] Saved training plot: {plot_path}")
+
 def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15, epochs_phase2=20, batch_size=32, 
-                save_dir="saved_model", max_train_samples=None, max_val_samples=None, max_test_samples=None):
+                save_dir="saved_model", unfreeze_layers=80, max_train_samples=None, max_val_samples=None, max_test_samples=None):
     """
     Two-phase Deep Learning training loop:
-    Phase 1: Train classification head with frozen EfficientNet base.
-    Phase 2: Unfreeze top 50 layers and fine-tune at low learning rate with LR scheduling.
-    Saves model_metadata.json alongside the trained .keras model.
+    Phase 1: Train 3-layer Swish classification head with frozen EfficientNet base using Cosine Decay + Warmup.
+    Phase 2: Unfreeze top N layers (default 80) and fine-tune at low learning rate with Cosine Decay.
+    Saves model_metadata.json and training diagnostic plots.
     """
+    # Mixed precision auto-detection (enabled on GPU, safe fallback on CPU)
+    gpus = tf.config.list_physical_devices("GPU")
+    if gpus:
+        try:
+            tf.keras.mixed_precision.set_global_policy("mixed_float16")
+            print("[INFO] GPU detected. Mixed precision (mixed_float16) enabled for maximum training throughput.")
+        except Exception as e:
+            print(f"[INFO] Mixed precision setup notice: {e}")
+    else:
+        print("[INFO] Running on CPU. Using standard float32 precision.")
+
     os.makedirs(save_dir, exist_ok=True)
     model_path = os.path.join(save_dir, "authentix_model.keras")
     metadata_path = os.path.join(save_dir, "model_metadata.json")
 
     # Build model to determine target input resolution
-    print(f"[INFO] Building {architecture} CNN model...")
+    print(f"[INFO] Building {architecture} CNN model with 3-layer Swish head...")
     model, base_model, input_shape = build_model(architecture=architecture)
     img_size = (input_shape[0], input_shape[1])
     print(f"[INFO] Input resolution set to: {img_size}")
@@ -35,6 +92,35 @@ def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15
     )
     print(f"[INFO] Class mapping: {label_map}")
 
+    # Calculate steps per epoch for learning rate schedules
+    cardinality = tf.data.experimental.cardinality(train_ds).numpy()
+    steps_per_epoch = int(cardinality) if cardinality > 0 else 50
+    print(f"[INFO] Steps per epoch: {steps_per_epoch}")
+
+    # Phase 1 LR Schedule: Warmup + Cosine Decay
+    total_steps_p1 = max(1, steps_per_epoch * epochs_phase1)
+    warmup_steps_p1 = max(1, min(steps_per_epoch * 2, total_steps_p1 // 5))
+    lr_schedule_p1 = tf.keras.optimizers.schedules.CosineDecay(
+        initial_learning_rate=1e-4,
+        decay_steps=total_steps_p1,
+        alpha=0.01,
+        warmup_target=1e-3,
+        warmup_steps=warmup_steps_p1
+    )
+
+    # Recompile model with Warmup Cosine Decay optimizer
+    loss_fn = tf.keras.losses.BinaryCrossentropy(label_smoothing=0.05)
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule_p1),
+        loss=loss_fn,
+        metrics=[
+            "accuracy",
+            tf.keras.metrics.Precision(name="precision"),
+            tf.keras.metrics.Recall(name="recall"),
+            tf.keras.metrics.AUC(name="auc")
+        ]
+    )
+
     model.summary()
 
     # Callbacks for Phase 1
@@ -49,7 +135,7 @@ def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15
         tf.keras.callbacks.EarlyStopping(
             monitor="val_auc",
             mode="max",
-            patience=5,
+            patience=7,
             restore_best_weights=True,
             verbose=1
         )
@@ -58,6 +144,7 @@ def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15
     # --- Phase 1: Frozen Base Training ---
     print(f"\n==================================================")
     print(f"   PHASE 1: Training Classification Head ({epochs_phase1} epochs)")
+    print(f"   Learning Rate: Warmup (1e-4 -> 1e-3) + Cosine Decay")
     print(f"==================================================")
     history_phase1 = model.fit(
         train_ds,
@@ -68,12 +155,20 @@ def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15
 
     # --- Phase 2: Fine-Tuning Top Layers ---
     print(f"\n==================================================")
-    print(f"   PHASE 2: Fine-tuning Top 50 Base Layers ({epochs_phase2} epochs)")
+    print(f"   PHASE 2: Fine-tuning Top {unfreeze_layers} Base Layers ({epochs_phase2} epochs)")
+    print(f"   Learning Rate: Cosine Decay (1e-5 -> 1e-7)")
     print(f"==================================================")
-    model = unfreeze_for_finetuning(model, base_model, num_layers_to_unfreeze=50, learning_rate=1e-5)
+    total_steps_p2 = max(1, steps_per_epoch * epochs_phase2)
+    lr_schedule_p2 = tf.keras.optimizers.schedules.CosineDecay(
+        initial_learning_rate=1e-5,
+        decay_steps=total_steps_p2,
+        alpha=0.01
+    )
+
+    model = unfreeze_for_finetuning(model, base_model, num_layers_to_unfreeze=unfreeze_layers, learning_rate=lr_schedule_p2)
     model.summary()
 
-    # Callbacks for Phase 2 — add LR scheduler
+    # Callbacks for Phase 2 — add ReduceLROnPlateau backup
     callbacks_p2 = [
         tf.keras.callbacks.ModelCheckpoint(
             filepath=model_path,
@@ -85,14 +180,14 @@ def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15
         tf.keras.callbacks.EarlyStopping(
             monitor="val_auc",
             mode="max",
-            patience=5,
+            patience=7,
             restore_best_weights=True,
             verbose=1
         ),
         tf.keras.callbacks.ReduceLROnPlateau(
             monitor="val_loss",
             factor=0.5,
-            patience=2,
+            patience=3,
             min_lr=1e-7,
             verbose=1
         )
@@ -105,6 +200,11 @@ def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15
         initial_epoch=len(history_phase1.epoch),
         callbacks=callbacks_p2
     )
+
+    # Save training history plots
+    plots_dir = "plots"
+    print("\n[INFO] Generating training history curves...")
+    plot_training_history(history_phase1, history_phase2, save_dir=plots_dir)
 
     # Evaluate on Test Set
     print("\n==================================================")
@@ -124,7 +224,6 @@ def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15
     print(f"Test Recall    : {test_recall:.4f}")
     print(f"Test AUC       : {test_auc:.4f}")
 
-    # Calculate F1 score (Fixed formula: 2 * P * R / (P + R))
     if (test_precision + test_recall) > 0:
         test_f1 = 2.0 * (test_precision * test_recall) / (test_precision + test_recall)
     else:
@@ -142,10 +241,11 @@ def train_model(data_dir="data", architecture="EfficientNetB4", epochs_phase1=15
             "epochs_phase1": epochs_phase1,
             "epochs_phase2": epochs_phase2,
             "batch_size": batch_size,
+            "unfreeze_layers": unfreeze_layers,
             "data_dir": data_dir,
             "img_size": list(img_size),
-            "optimizer_p1": "Adam(lr=1e-3)",
-            "optimizer_p2": "Adam(lr=1e-5)",
+            "optimizer_p1": "Adam(CosineDecayWithWarmup, lr=1e-3)",
+            "optimizer_p2": "Adam(CosineDecay, lr=1e-5)",
             "label_smoothing": 0.05
         },
         "test_metrics": {
@@ -170,6 +270,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs_p1", type=int, default=15, help="Epochs for Phase 1 (frozen base)")
     parser.add_argument("--epochs_p2", type=int, default=20, help="Epochs for Phase 2 (fine-tuning)")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
+    parser.add_argument("--unfreeze_layers", type=int, default=80, help="Number of base layers to unfreeze in Phase 2")
+    parser.add_argument("--save_dir", type=str, default="saved_model", help="Directory to save trained model and metadata")
     parser.add_argument("--max_train_samples", type=int, default=None, help="Max train samples (default: all)")
     parser.add_argument("--max_val_samples", type=int, default=None, help="Max val samples (default: all)")
     parser.add_argument("--max_test_samples", type=int, default=None, help="Max test samples (default: all)")
@@ -181,6 +283,8 @@ if __name__ == "__main__":
         epochs_phase1=args.epochs_p1, 
         epochs_phase2=args.epochs_p2, 
         batch_size=args.batch_size,
+        save_dir=args.save_dir,
+        unfreeze_layers=args.unfreeze_layers,
         max_train_samples=args.max_train_samples,
         max_val_samples=args.max_val_samples,
         max_test_samples=args.max_test_samples
