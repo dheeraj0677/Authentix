@@ -11,7 +11,15 @@ $rootDir = $PSScriptRoot
 $venvPython = "python"
 $venvPath = Join-Path $rootDir "backend\venv\Scripts\python.exe"
 if (Test-Path $venvPath) {
-    $venvPython = $venvPath
+    try {
+        $null = & $venvPath -c "import fastapi, tensorflow" 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $venvPython = $venvPath
+        }
+    } catch {
+        # Fall back to system python
+        $venvPython = "python"
+    }
 }
 $frontendDir = Join-Path $rootDir "frontend"
 $blockchainDir = Join-Path $rootDir "blockchain"
