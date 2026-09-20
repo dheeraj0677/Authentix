@@ -6,10 +6,11 @@ import tensorflow as tf
 from data import load_datasets
 from predict import get_or_load_model
 
-def evaluate_model_performance(data_dir="data", model_path="saved_model/authentix_model.keras", output_json="plots/evaluation_metrics.json"):
+def evaluate_model_performance(data_dir="data", model_path="saved_model/authentix_model.keras", output_json="plots/evaluation_metrics.json", max_samples=None):
     """
-    Evaluates EfficientNetB0 model performance on the real test split.
+    Evaluates EfficientNet model performance on the real test split.
     Computes Confusion Matrix, F1-Score, and ROC-AUC from actual model inference.
+    Supports max_samples for fast benchmarking or comprehensive validation.
     """
     print("[INFO] Running comprehensive model evaluation on real test data...")
     model = get_or_load_model(model_path)
@@ -30,7 +31,7 @@ def evaluate_model_performance(data_dir="data", model_path="saved_model/authenti
                 pass
         
         print(f"[INFO] Evaluating model with target image resolution: {img_size}")
-        _, _, test_ds, label_map = load_datasets(data_dir, img_size=img_size, batch_size=32)
+        _, _, test_ds, label_map = load_datasets(data_dir, img_size=img_size, batch_size=32, max_test_samples=max_samples)
         print(f"[INFO] Evaluating with class mapping: {label_map}")
 
         print("[INFO] Running inference on test set...")
@@ -126,6 +127,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str, default="data", help="Path to dataset (real/ and fake/ subdirs)")
     parser.add_argument("--model", type=str, default="saved_model/authentix_model.keras", help="Path to trained .keras model")
     parser.add_argument("--output", type=str, default="plots/evaluation_metrics.json", help="Output JSON path")
+    parser.add_argument("--max_samples", type=int, default=None, help="Maximum test samples to evaluate (default: all)")
     args = parser.parse_args()
 
-    evaluate_model_performance(args.data_dir, args.model, args.output)
+    evaluate_model_performance(args.data_dir, args.model, args.output, max_samples=args.max_samples)
