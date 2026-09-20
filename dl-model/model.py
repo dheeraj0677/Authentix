@@ -1,10 +1,11 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models, metrics
 
-def build_model(architecture="EfficientNetB4", input_shape=None, label_smoothing=0.05):
+def build_model(architecture="EfficientNetB4", input_shape=None, label_smoothing=0.05, learning_rate=1e-3):
     """
     Builds an EfficientNet (B4 or B0)-based Deep Learning classification model.
     Initially freezes base model for Phase 1 transfer learning.
+    Enhanced with a 3-layer Swish dense head and calibrated dropout for higher accuracy.
     
     Default: EfficientNetB4 with (380, 380, 3) resolution.
     """
@@ -30,23 +31,28 @@ def build_model(architecture="EfficientNetB4", input_shape=None, label_smoothing
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.BatchNormalization()(x)
     
-    # Enhanced Dense Classification Head
-    x = layers.Dense(512, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(1e-4))(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.4)(x)
+    # Enhanced Dense Classification Head (3-stage distillation with Swish)
+    x = layers.Dense(512, activation="swish", kernel_regularizer=tf.keras.regularizers.l2(1e-4), name="head_dense_1")(x)
+    x = layers.BatchNormalization(name="head_bn_1")(x)
+    x = layers.Dropout(0.3, name="head_dropout_1")(x)
     
-    x = layers.Dense(256, activation="relu", kernel_regularizer=tf.keras.regularizers.l2(1e-4))(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.Dropout(0.3)(x)
+    x = layers.Dense(256, activation="swish", kernel_regularizer=tf.keras.regularizers.l2(1e-4), name="head_dense_2")(x)
+    x = layers.BatchNormalization(name="head_bn_2")(x)
+    x = layers.Dropout(0.25, name="head_dropout_2")(x)
     
-    outputs = layers.Dense(1, activation="sigmoid")(x)
+    x = layers.Dense(128, activation="swish", kernel_regularizer=tf.keras.regularizers.l2(1e-4), name="head_dense_3")(x)
+    x = layers.BatchNormalization(name="head_bn_3")(x)
+    x = layers.Dropout(0.2, name="head_dropout_3")(x)
+    
+    # Explicit float32 dtype ensures numerical stability when mixed precision is enabled
+    outputs = layers.Dense(1, activation="sigmoid", dtype="float32", name="predictions")(x)
 
     model = models.Model(inputs=inputs, outputs=outputs, name=f"Authentix_{architecture}")
 
     loss_fn = tf.keras.losses.BinaryCrossentropy(label_smoothing=label_smoothing)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss=loss_fn,
         metrics=[
             "accuracy",
@@ -57,10 +63,10 @@ def build_model(architecture="EfficientNetB4", input_shape=None, label_smoothing
     )
     return model, base_model, input_shape
 
-def unfreeze_for_finetuning(model, base_model, num_layers_to_unfreeze=50, learning_rate=1e-5, label_smoothing=0.05):
+def unfreeze_for_finetuning(model, base_model, num_layers_to_unfreeze=80, learning_rate=1e-5, label_smoothing=0.05):
     """
-    Unfreezes top N layers of base_model for Phase 2 fine-tuning.
-    Recompiles model with a smaller learning rate.
+    Unfreezes top N layers (default 80) of base_model for Phase 2 fine-tuning.
+    Recompiles model with a fine-tuning learning rate (or schedule).
     """
     base_model.trainable = True
     
